@@ -1,3 +1,7 @@
+# Compiled source and environment files
 .DS_Store
 .venv
+__pycache__/
+
+# Directory for storing data
 /data
