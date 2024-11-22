@@ -11,11 +11,14 @@ class Config:
     RAW_DATA_DIR = os.path.join(DATA_DIR, "raw")
     PROCESSED_DATA_DIR = os.path.join(DATA_DIR, "processed")
 
-    # File names
+    # Data files
     RAW_FILE = "train.csv" # Original name of the file. Test set did not have labels.
-    TRAIN_FILE = "train.tsv"
-    VAL_FILE = "dev.tsv"
-    TEST_FILE = "test.tsv"
+    TRAIN_FILE = "train.csv"
+    VAL_FILE = "dev.csv"
+    TEST_FILE = "test.csv"
+
+    # Reports
+    REPORTS_DIR = os.path.join(ROOT_DIR, "reports")
 
     # Model parameters
     RANDOM_STATE = 819
