@@ -1,6 +1,7 @@
-from src.utils.config import Config
+from src.project_setup import ProjectSetup
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import os
 
 
 def load_data(language: str) -> pd.DataFrame:
@@ -13,7 +14,7 @@ def load_data(language: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The loaded dataframe.
     """
-    data_path = f"{Config.RAW_DATA_DIR}/{language}/{Config.RAW_FILE}"
+    data_path = f"{ProjectSetup.RAW_DATA_DIR}/{language}/{ProjectSetup.RAW_FILE}"
     try:
         df = pd.read_csv(data_path, index_col=0)
         df.index.name = None
@@ -53,7 +54,7 @@ def split_data(language, test_size=0.1, val_size=0.1):
     """
     df = load_data(language)
     df = process_data(df)
-    random_state = Config.RANDOM_STATE
+    random_state = ProjectSetup.RANDOM_STATE
     train_temp, test_df = train_test_split(
         df, 
         test_size=test_size, 
@@ -67,4 +68,21 @@ def split_data(language, test_size=0.1, val_size=0.1):
         stratify=train_temp['label']
     )
     return train_df, val_df, test_df
+
+def main():
+    for language in ProjectSetup.LANGUAGES:
+        print(f"Processing language: {language}")
+        train_df, val_df, test_df = split_data(language)
+
+        output_dir = os.path.join(ProjectSetup.PROCESSED_DATA_DIR, language)
+        os.makedirs(output_dir, exist_ok=True)
+
+        train_df.to_csv(os.path.join(output_dir, ProjectSetup.TRAIN_FILE), index=False)
+        val_df.to_csv(os.path.join(output_dir, ProjectSetup.VALIDATION_FILE), index=False)
+        test_df.to_csv(os.path.join(output_dir, ProjectSetup.TEST_FILE), index=False)
+
+        print(f"Splits for {language} saved successfully.")
+
+if __name__ == "__main__":
+    main()
 
