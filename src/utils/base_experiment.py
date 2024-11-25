@@ -17,7 +17,7 @@ class BaseExperiment:
         self.setup_paths()
         self.setup_logging()
         
-    def _convert_to_json(o) -> Any:
+    def _convert_to_json(self, o):
         if isinstance(o, np.int64): return int(o)
         if isinstance(o, np.float64): return float(o)
         raise TypeError
@@ -55,11 +55,11 @@ class BaseExperiment:
 
     def calculate_metrics(self, true_labels: list, predictions: list) -> dict:
         """Calculate classification metrics"""
-        return classification_report(true_labels, predictions, output_dict=True)
+        return classification_report(true_labels, predictions, output_dict=True, zero_division=0)
     
-    def save_metrics(self, metrics: Dict[str, Any], filename: str):
+    def save_metrics(self, metrics: Dict[str, Any], save_path: str):
         """Save metrics to a file"""
-        with open(self.metrics_dir / filename, 'w') as f:
+        with open(self.metrics_dir / save_path, 'w') as f:
             json.dump(metrics, f, default=self._convert_to_json)
 
     def save_predictions(self, predictions: list, true_labels: list, save_path: Path):
