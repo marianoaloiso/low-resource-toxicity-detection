@@ -3,5 +3,6 @@
 .venv
 __pycache__/
 
-# Directory for storing data
+# Data and results
 /data
+/results
