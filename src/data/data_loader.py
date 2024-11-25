@@ -47,7 +47,7 @@ class DataLoader:
     """Handles loading of data for different languages"""
     def __init__(
         self,
-        tokenizer: PreTrainedTokenizer,
+        tokenizer: PreTrainedTokenizer = None,
         max_length: int = 512
     ):
         self.tokenizer = tokenizer
