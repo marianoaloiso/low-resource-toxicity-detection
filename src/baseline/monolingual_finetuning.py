@@ -1,7 +1,7 @@
 from src.data.data_loader import DataLoader
 from src.project_setup import ProjectSetup
 from src.utils.base_experiment import BaseExperiment
-from src.utils.model import load_automodel
+from src.utils.model import calculate_class_weights, load_automodel, WeightedTrainer
 from transformers import Trainer, TrainingArguments
 import logging
 
@@ -17,9 +17,13 @@ class MonolingualFinetuningExperiment(BaseExperiment):
         self.model = None
         self.tokenizer = None
 
-    def train(self, language):
+    def train(self, language, use_class_weights=False):
         """Train the model on the training data"""
         logger.info(f"Starting training for language: {language}")
+
+        class_weights = None
+        if use_class_weights:
+            class_weights = calculate_class_weights(self.datasets["train"].labels)
 
         training_args = TrainingArguments(
             output_dir=self.models_dir,
@@ -27,11 +31,12 @@ class MonolingualFinetuningExperiment(BaseExperiment):
             per_device_train_batch_size=self.config.batch_size,
             learning_rate=self.config.learning_rate,
         )
-        trainer = Trainer(
+        trainer = WeightedTrainer(
             model=self.model,
             args=training_args,
             train_dataset=self.datasets["train"],
             eval_dataset=self.datasets["validation"],
+            class_weights=class_weights
         )
 
         train_results = trainer.train()
@@ -87,7 +92,7 @@ class MonolingualFinetuningExperiment(BaseExperiment):
             self.datasets = data_loader.load_language_data(language)
 
             # Train the model
-            train_metrics = self.train(language)
+            train_metrics = self.train(language, use_class_weights=True)
 
             # Evaluate on validation set
             val_metrics = self.evaluate(language, dataset_split="validation")
