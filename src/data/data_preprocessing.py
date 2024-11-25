@@ -74,12 +74,11 @@ def main():
         print(f"Processing language: {language}")
         train_df, val_df, test_df = split_data(language)
 
-        output_dir = os.path.join(ProjectSetup.PROCESSED_DATA_DIR, language)
-        os.makedirs(output_dir, exist_ok=True)
+        ProjectSetup.create_processed_data_dir(language)
 
-        train_df.to_csv(os.path.join(output_dir, ProjectSetup.TRAIN_FILE), index=False)
-        val_df.to_csv(os.path.join(output_dir, ProjectSetup.VALIDATION_FILE), index=False)
-        test_df.to_csv(os.path.join(output_dir, ProjectSetup.TEST_FILE), index=False)
+        train_df.to_csv(ProjectSetup.get_train_path(language), index=False)
+        val_df.to_csv(ProjectSetup.get_validation_path(language), index=False)
+        test_df.to_csv(ProjectSetup.get_test_path(language), index=False)
 
         print(f"Splits for {language} saved successfully.")
 
