@@ -44,7 +44,16 @@ class ToxicCommentsDataset(Dataset):
 
 
 class DataLoader:
-    """Handles loading of data for different languages"""
+    """Handles loading of data for different languages
+
+    Args:
+        tokenizer (PreTrainedTokenizer): Tokenizer to use for encoding text.
+        max_length (int): Maximum length of input sequences.
+
+    Attributes:
+        tokenizer (PreTrainedTokenizer): Tokenizer to use for encoding text.
+        max_length (int): Maximum length of input sequences.
+    """
     def __init__(
         self,
         tokenizer: PreTrainedTokenizer = None,
@@ -60,7 +69,17 @@ class DataLoader:
             load_validation: bool = True,
             load_test: bool = True
         ) -> pd.DataFrame:
-        """Load data for a specific language"""
+        """Load data for a specific language
+
+        Args:
+            language (str): Language for which to load data.
+            load_train (bool): Load training data.
+            load_validation (bool): Load validation data.
+            load_test (bool): Load test data.
+        
+        Returns:
+            Dict[str, pd.DataFrame]: Data for the specified language.
+        """
         data = {}
 
         if load_train:
@@ -99,15 +118,40 @@ class DataLoader:
         logger.info(f"Loaded data for language: {language}")
         return data
 
-    def load_all_languages(
+    def load_combined_language_data(
         self,
-        languages: List[str] = ProjectSetup.LANGUAGES
-    ) -> Dict[str, pd.DataFrame]:
-        """Load data for all languages"""
-        datasets_dict = {}
-        for language in languages:
-            datasets_dict[language] = self.load_language_data(language)
+        languages: List[str] = ProjectSetup.LANGUAGES,
+        splits: List[str] = ["train", "validation", "test"]
+    ) -> Dict[str, "ToxicCommentsDataset"]:
+        """
+        Load and combine data for multiple languages
+        
+        Args:
+            languages (List[str]): List of languages to combine.
+            splits (List[str]): Dataset splits to combine (e.g., train, validation, test).
 
-        return datasets_dict
+        Returns:
+            Dict[str, ToxicCommentsDataset]: Combined datasets for the specified splits.
+        """
+        combined_data = {split: {"texts": [], "labels": []} for split in splits}
+
+        for language in languages:
+            language_data = self.load_language_data(language)
+
+            for split in splits:
+                if split in language_data:
+                    combined_data[split]["texts"].extend(language_data[split].texts)
+                    combined_data[split]["labels"].extend(language_data[split].labels)
+
+        for split in splits:
+            combined_data[split] = ToxicCommentsDataset(
+                texts=combined_data[split]["texts"],
+                labels=combined_data[split]["labels"],
+                tokenizer=self.tokenizer,
+                max_length=self.max_length
+            )
+
+        logger.info(f"Combined multilingual data for languages: {languages}")
+        return combined_data
     
     
