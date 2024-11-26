@@ -25,8 +25,10 @@ class MonolingualFinetuningExperiment(BaseExperiment):
         if use_class_weights:
             class_weights = calculate_class_weights(self.datasets["train"].labels)
 
+        model_save_path = self.models_dir / f"{language}_model"
+
         training_args = TrainingArguments(
-            output_dir=self.models_dir,
+            output_dir=model_save_path,
             num_train_epochs=self.config.num_epochs,
             per_device_train_batch_size=self.config.batch_size,
             learning_rate=self.config.learning_rate,
@@ -40,8 +42,6 @@ class MonolingualFinetuningExperiment(BaseExperiment):
         )
 
         train_results = trainer.train()
-
-        model_save_path = self.models_dir / f"{language}_model"
         trainer.save_model(str(model_save_path))
 
         self.save_json(
