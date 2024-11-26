@@ -2,7 +2,7 @@ from src.data.data_loader import DataLoader
 from src.project_setup import ProjectSetup
 from src.utils.base_experiment import BaseExperiment
 from src.utils.model import calculate_class_weights, load_automodel, WeightedTrainer
-from transformers import Trainer, TrainingArguments
+from transformers import TrainingArguments
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,19 +16,22 @@ class MultilingualFinetuningExperiment(BaseExperiment):
         self.num_labels = self.config.num_labels
         self.model = None
         self.tokenizer = None
+        self.languages = ProjectSetup.LANGUAGES
 
     def train(self, use_class_weights=False):
-        """Train the model on the training dataset"""
+        """Train the model on the training dataset
+
+        Args:
+            use_class_weights (bool): Whether to use class weights for training
+        """
         logger.info("Starting multilingual training")
 
         class_weights = None
         if use_class_weights:
             class_weights = calculate_class_weights(self.datasets["train"].labels)
 
-        model_save_path = self.models_dir / "multilingual_model"
-
         training_args = TrainingArguments(
-            output_dir=model_save_path,
+            output_dir=self.models_dir,
             num_train_epochs=self.config.num_epochs,
             per_device_train_batch_size=self.config.batch_size,
             learning_rate=self.config.learning_rate,
@@ -43,23 +46,29 @@ class MultilingualFinetuningExperiment(BaseExperiment):
         )
 
         train_results = trainer.train()
-        trainer.save_model(str(model_save_path))
+        trainer.save_model(str(self.models_dir))
 
         self.save_json(
             train_results.metrics,
-            model_save_path / "training_metrics.json",
+            self.models_dir / "training_metrics.json",
         )
 
         logger.info("Completed multilingual training")
 
-    def evaluate(self, language, dataset_split="test"):
-        """Evaluate the model on the specified dataset split"""
-        logger.info(f"Evaluating model on {dataset_split} set")
+        return trainer
+
+    def evaluate(self, trainer, language, dataset_split="test"):
+        """Evaluate the model on the specified dataset split
+
+        Args:
+            trainer (Trainer): Trainer object
+            language (str): Language to evaluate on
+            dataset_split (str): Dataset split to evaluate on
         
-        trainer = Trainer(
-            model=self.model,
-            args=TrainingArguments(output_dir=ProjectSetup.DUMMY_DIR),
-        )
+        Returns:
+            dict: Evaluation metrics
+        """
+        logger.info(f"Evaluating model on {dataset_split} set")
         
         predictions = trainer.predict(self.datasets[dataset_split])
         
@@ -90,18 +99,18 @@ class MultilingualFinetuningExperiment(BaseExperiment):
 
         self.datasets = data_loader.load_combined_language_data()
 
-        self.train(use_class_weights=True)
+        trainer = self.train(use_class_weights=True)
 
-        for language in ProjectSetup.LANGUAGES:
+        for language in self.languages:
             logger.info(f"Evaluating experiment for language: {language}")
 
             self.datasets = data_loader.load_language_data(language)
 
-            train_metrics = self.evaluate(language, dataset_split="train")
+            train_metrics = self.evaluate(trainer, language, dataset_split="train")
 
-            val_metrics = self.evaluate(language, dataset_split="validation")
+            val_metrics = self.evaluate(trainer, language, dataset_split="validation")
 
-            test_metrics = self.evaluate(language, dataset_split="test")
+            test_metrics = self.evaluate(trainer, language, dataset_split="test")
 
             all_metrics = {
                 "train": train_metrics,
