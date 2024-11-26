@@ -57,7 +57,7 @@ class MonolingualFinetuningExperiment(BaseExperiment):
         
         trainer = Trainer(
             model=self.model,
-            args=TrainingArguments(output_dir="dummy_dir"),  # Dummy dir for evaluation only
+            args=TrainingArguments(output_dir=ProjectSetup.DUMMY_DIR)
         )
         
         predictions = trainer.predict(self.datasets[dataset_split])

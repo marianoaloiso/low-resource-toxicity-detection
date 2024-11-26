@@ -12,10 +12,13 @@ class ProjectSetup:
     TRAIN_FILE = "train.csv"
     VALIDATION_FILE = "validation.csv"
     TEST_FILE = "test.csv"
-
+    
     # Results directory
     RESULTS_DIR = ROOT_DIR / "results"
 
+    # Dummy directory created during training
+    DUMMY_DIR = ROOT_DIR / "results" / "tmp"
+    
     # Languages
     LANGUAGES = ["assamese", "bengali", "bodo"]
 
