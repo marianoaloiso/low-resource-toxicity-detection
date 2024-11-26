@@ -18,6 +18,9 @@ class ProjectSetup:
 
     # Languages
     LANGUAGES = ["assamese", "bengali", "bodo"]
+
+    # Labels
+    LABELS = {0: "not-toxic", 1: "toxic"}
     
     # Model parameters
     RANDOM_STATE = 819
@@ -36,4 +39,3 @@ class ProjectSetup:
     def get_test_path(language: str):
         return ProjectSetup.PROCESSED_DATA_DIR / language / ProjectSetup.TEST_FILE
     
-
