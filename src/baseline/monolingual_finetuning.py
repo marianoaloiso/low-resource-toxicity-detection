@@ -44,8 +44,12 @@ class MonolingualFinetuningExperiment(BaseExperiment):
         model_save_path = self.models_dir / f"{language}_model"
         trainer.save_model(str(model_save_path))
 
+        self.save_json(
+            train_results.metrics,
+            model_save_path / f"training_metrics.json"
+        )
+
         logger.info(f"Completed training for language: {language}")
-        return train_results.metrics
 
     def evaluate(self, language, dataset_split="test"):
         """Evaluate the model on the specified dataset split"""
@@ -92,7 +96,10 @@ class MonolingualFinetuningExperiment(BaseExperiment):
             self.datasets = data_loader.load_language_data(language)
 
             # Train the model
-            train_metrics = self.train(language, use_class_weights=True)
+            self.train(language, use_class_weights=True)
+
+            # Evaluate on training set
+            train_metrics = self.evaluate(language, dataset_split="train")
 
             # Evaluate on validation set
             val_metrics = self.evaluate(language, dataset_split="validation")
