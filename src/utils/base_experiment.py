@@ -21,6 +21,11 @@ class BaseExperiment:
         if isinstance(o, np.int64): return int(o)
         if isinstance(o, np.float64): return float(o)
         raise TypeError
+    
+    def save_json(self, data: dict, save_path: Path):
+        """Save dictionary to a JSON file"""
+        with open(save_path, 'w') as f:
+            json.dump(data, f, default=self._convert_to_json)
         
     def setup_paths(self):
         """Create necessary directories for results"""
@@ -59,8 +64,7 @@ class BaseExperiment:
     
     def save_metrics(self, metrics: Dict[str, Any], save_path: str):
         """Save metrics to a file"""
-        with open(self.metrics_dir / save_path, 'w') as f:
-            json.dump(metrics, f, default=self._convert_to_json)
+        return self.save_json(metrics, self.metrics_dir / save_path)
 
     def save_predictions(self, predictions: list, true_labels: list, save_path: Path):
         """Save predictions and true labels to file"""
@@ -68,6 +72,5 @@ class BaseExperiment:
             'predictions': predictions,
             'true_labels': true_labels
         }
-        with open(save_path, 'w') as f:
-            json.dump(results, f, default=self._convert_to_json)
+        return self.save_json(results, save_path)
             
