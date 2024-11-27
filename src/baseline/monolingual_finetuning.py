@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class MonolingualFinetuningExperiment(BaseExperiment):
-    """Fine-tuning XLM-R on individual datasets experiment"""
+    """Fine-tuning model on individual datasets experiment"""
 
     def __init__(self, config_path):
         super().__init__(config_path, experiment_type="monolingual_finetuning")
