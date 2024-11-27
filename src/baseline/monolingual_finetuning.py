@@ -78,14 +78,14 @@ class MonolingualFinetuningExperiment(BaseExperiment):
         
         return metrics
     
-    def run_experiment(self):
+    def run_experiment(self, languages):
         """Run the fine-tuning experiment"""
         data_loader = DataLoader(
             tokenizer=None,
             max_length=self.config.max_length,
         )
 
-        for language in ProjectSetup.LANGUAGES:
+        for language in languages:
             logger.info(f"Starting experiment for language: {language}")
 
             # Initialize fresh model for each language
@@ -125,6 +125,7 @@ class MonolingualFinetuningExperiment(BaseExperiment):
 
 if __name__ == "__main__":
     config_path = "configs/monolingual_finetuning_config.yaml"
+    languages = ["bodo"]
     experiment = MonolingualFinetuningExperiment(config_path)
-    experiment.run_experiment()
+    experiment.run_experiment(languages=languages)
 
