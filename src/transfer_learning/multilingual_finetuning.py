@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class MultilingualFinetuningExperiment(BaseExperiment):
-    """Fine-tuning XLM-R on multilingual datasets experiment"""
+    """Fine-tuning model on multilingual dataset"""
 
     def __init__(self, config_path):
         super().__init__(config_path, experiment_type="multilingual_finetuning")
@@ -16,7 +16,6 @@ class MultilingualFinetuningExperiment(BaseExperiment):
         self.num_labels = self.config.num_labels
         self.model = None
         self.tokenizer = None
-        self.languages = ProjectSetup.LANGUAGES
 
     def train(self, use_class_weights=False):
         """Train the model on the training dataset
@@ -88,7 +87,7 @@ class MultilingualFinetuningExperiment(BaseExperiment):
         
         return metrics
 
-    def run_experiment(self):
+    def run_experiment(self, languages):
         """Run the multilingual fine-tuning experiment"""
         self.model, self.tokenizer = load_automodel(self.model_name, self.num_labels)
 
@@ -101,7 +100,7 @@ class MultilingualFinetuningExperiment(BaseExperiment):
 
         trainer = self.train(use_class_weights=True)
 
-        for language in self.languages:
+        for language in languages:
             logger.info(f"Evaluating experiment for language: {language}")
 
             self.datasets = data_loader.load_language_data(language)
@@ -130,6 +129,7 @@ class MultilingualFinetuningExperiment(BaseExperiment):
 
 if __name__ == "__main__":
     config_path = "configs/multilingual_finetuning_config.yaml"
+    languages = ["bodo"]
     experiment = MultilingualFinetuningExperiment(config_path)
-    experiment.run_experiment()
+    experiment.run_experiment(languages)
 
