@@ -4,7 +4,6 @@ from src.utils.base_experiment import BaseExperiment
 from src.utils.model import calculate_class_weights, load_automodel, WeightedTrainer
 from transformers import TrainingArguments
 import logging
-from itertools import combinations
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,7 @@ class CrosslingualTransferExperiment(BaseExperiment):
         self.num_labels = self.config.num_labels
         self.model = None
         self.tokenizer = None
-        self.languages = ProjectSetup.LANGUAGES
+        self.available_languages = ProjectSetup.LANGUAGES
 
     def train_on_languages(self, source_languages, use_class_weights=False):
         """
@@ -95,7 +94,7 @@ class CrosslingualTransferExperiment(BaseExperiment):
         
         return metrics
 
-    def run_experiment(self):
+    def run_experiment(self, languages):
         """
         Run crosslingual transfer learning experiment
         Iterate through all possible source language combinations
@@ -108,14 +107,12 @@ class CrosslingualTransferExperiment(BaseExperiment):
             max_length=self.config.max_length,
         )
 
-        language_combinations = list(combinations(self.languages, 2))
-
-        for source_languages in language_combinations:
-            target_language = [lang for lang in self.languages if lang not in source_languages][0]
+        for target_language in languages:
+            source_languages = [lang for lang in self.available_languages if lang != target_language]
             
-            logger.info(f"Experiment: Train on {source_languages}, Test on {target_language}")
+            logger.info(f"Experiment: Train on {source_languages}, Evaluate on {target_language}")
 
-            trainer = self.train_on_languages(list(source_languages))
+            trainer = self.train_on_languages(source_languages, use_class_weights=True)
 
             metrics = {
                 "train": self.evaluate_on_language(trainer, target_language, "train"),
@@ -135,6 +132,7 @@ class CrosslingualTransferExperiment(BaseExperiment):
 
 if __name__ == "__main__":
     config_path = "configs/crosslingual_transfer_config.yaml"
+    languages = ["bodo"]
     experiment = CrosslingualTransferExperiment(config_path)
-    experiment.run_experiment()
+    experiment.run_experiment(languages)
 
