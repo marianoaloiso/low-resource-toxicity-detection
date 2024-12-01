@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 class MonolingualFinetuningExperiment(BaseExperiment):
     """Fine-tuning model on individual datasets experiment"""
 
-    def __init__(self, config_path):
-        super().__init__(config_path, experiment_type="monolingual_finetuning")
+    def __init__(self, config_path, experiment_type="monolingual_finetuning"):
+        super().__init__(config_path, experiment_type=experiment_type)
         self.model_name = self.config.model_name
         self.num_labels = self.config.num_labels
         self.model = None
