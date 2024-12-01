@@ -1,5 +1,5 @@
 from src.utils.base_experiment import BaseExperiment
-from src.utils.model import ModelExperimentMixin, WeightedTrainer, ModelConfig
+from src.utils.model import ModelExperimentMixin, WeightedTrainer
 from peft import (
     LoraConfig, 
     get_peft_model, 
@@ -12,11 +12,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class MonolingualLoRAExperiment(BaseExperiment, ModelExperimentMixin):
+class LoRAExperiment(BaseExperiment, ModelExperimentMixin):
     """
     Mixin class to add LoRA (Low-Rank Adaptation) specific model training methods
     """
-    def __init__(self, config_path, experiment_type="monolingual_lora_finetuning"):
+    def __init__(self, config_path, experiment_type="lora_finetuning"):
         super().__init__(config_path, experiment_type=experiment_type)
         ModelExperimentMixin.__init__(self, self.config)
 
@@ -133,9 +133,9 @@ class MonolingualLoRAExperiment(BaseExperiment, ModelExperimentMixin):
 
 
 if __name__ == "__main__":
-    config_path = "configs/monolingual_lora_config.yaml"
+    config_path = "configs/lora_config.yaml"
     languages = ["bodo"]
-    experiment = MonolingualLoRAExperiment(config_path)
+    experiment = LoRAExperiment(config_path)
     experiment.run_experiment(
         languages=languages, 
         use_class_weights=True
