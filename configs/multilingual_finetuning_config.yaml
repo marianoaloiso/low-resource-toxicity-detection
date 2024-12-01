@@ -1,4 +1,4 @@
-model_name: "xlm-roberta-base"
+model_name: "ai4bharat/indic-bert"
 num_labels: 2
 max_length: 512
 learning_rate: !!float 2e-5
