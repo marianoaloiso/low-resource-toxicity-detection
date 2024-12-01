@@ -214,27 +214,24 @@ def calculate_class_weights(labels: list) -> torch.Tensor:
 @dataclass
 class ModelConfig:
     """Configuration for model training and inference"""
-    # Model architecture
-    model_name: str = None
-    max_length: int = 512
-    hidden_size: Optional[int] = None
+    # Fields common to all experiments
     num_labels: int = 2
-    
-    # Training parameters
-    batch_size: int = 32
-    learning_rate: float = 2e-5
-    num_epochs: int = 3
-    warmup_steps: int = 0
-    
-    # Other settings
     device: str = "cpu"
-    
+
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "ModelConfig":
-        return cls(**{
-            k: v for k, v in config_dict.items() 
-            if k in cls.__dataclass_fields__
-        })
+        # First, extract predefined fields
+        known_fields = {k: v for k, v in config_dict.items() if k in cls.__dataclass_fields__}
+        
+        # Create the instance with known fields
+        config_instance = cls(**known_fields)
+        
+        # Dynamically add additional attributes
+        for key, value in config_dict.items():
+            if key not in cls.__dataclass_fields__:
+                setattr(config_instance, key, value)
+        
+        return config_instance
     
 
 class WeightedTrainer(Trainer):
