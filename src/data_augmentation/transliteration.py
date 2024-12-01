@@ -1,14 +1,14 @@
 from indic_transliteration import sanscript
 from src.data.data_loader import DataLoader
 from src.project_setup import ProjectSetup
-from src.baseline.monolingual_finetuning import MonolingualFinetuningExperiment
-from src.utils.model import load_automodel
+from src.utils.base_experiment import BaseExperiment
+from src.utils.model import ModelExperimentMixin
 import logging
 
 
 logger = logging.getLogger(__name__)
 
-class TransliterationFinetuningExperiment(MonolingualFinetuningExperiment):
+class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
     """
     Experiment to test XLM-R performance with transliterated datasets
     Supports transliteration between different Indic scripts and Latin script
@@ -22,7 +22,9 @@ class TransliterationFinetuningExperiment(MonolingualFinetuningExperiment):
             config_path (str): Path to configuration file
             transliteration_target (str): Target script for transliteration
         """
-        super().__init__(config_path, experiment_type=f"transliteration/{transliteration_target}")   
+        super().__init__(config_path, experiment_type=f"transliteration/{transliteration_target}")
+        ModelExperimentMixin.__init__(self, self.config)
+
         self.language_scripts = {
             'bengali': sanscript.BENGALI,
             'bodo': sanscript.DEVANAGARI,
@@ -86,7 +88,7 @@ class TransliterationFinetuningExperiment(MonolingualFinetuningExperiment):
             logger.info(f"Starting experiment for language: {language}")
 
             # Initialize fresh model for each language
-            self.model, self.tokenizer = load_automodel(self.model_name, self.num_labels)
+            self.model, self.tokenizer = self.load_automodel(self.model_name, self.num_labels)
             data_loader.tokenizer = self.tokenizer
 
             # Setup data for the language
