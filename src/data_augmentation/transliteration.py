@@ -56,7 +56,7 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
 
     def transliterate_dataset(self, dataset, language):
         """
-        Transliterate entire dataset to target script (in place)
+        Augment dataset with transliterated texts (in-place)
         
         Args:
             dataset: Dataset to transliterate
@@ -69,10 +69,13 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
             logger.warning(f"No script found for language {language}")
             return dataset
         
-        dataset.texts  = [
+        transliterated_texts = [
             self.transliterate_text(text, source_script)
             for text in dataset.texts
         ]
+
+        dataset.texts.extend(transliterated_texts)
+        dataset.labels.extend(dataset.labels)
 
     def run_experiment(self, languages=ProjectSetup.LANGUAGES):
         """
@@ -94,10 +97,8 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
             # Setup data for the language
             self.datasets = data_loader.load_language_data(language)
 
-            # Transliterate datasets
+            # Augment training data with transliteration
             self.transliterate_dataset(self.datasets['train'], language)
-            self.transliterate_dataset(self.datasets['validation'], language)
-            self.transliterate_dataset(self.datasets['test'], language)
 
             # Train the model on transliterated data
             self.train(language, use_class_weights=True)
@@ -126,7 +127,7 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
 if __name__ == "__main__":
     language_pairs = [
         ('bodo', 'bengali'),
-        ('bodo', 'latin')
+        #('bodo', 'latin')
     ]
     config_path = "configs/monolingual_finetuning_config.yaml"
     for source, target in language_pairs:
