@@ -263,6 +263,7 @@ class CustomNLIPipeline:
     def __init__(self, model_name):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
+        self.model.eval()
 
     def encode_text(self, text):
         """Generate embeddings for the input text"""
