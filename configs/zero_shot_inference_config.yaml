@@ -1,0 +1,3 @@
+model_name: "ai4bharat/indic-bert"
+num_labels: 2
+max_length: 512
