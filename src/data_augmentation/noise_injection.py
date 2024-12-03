@@ -137,7 +137,7 @@ class DataAugmentationExperiment(BaseExperiment, ModelExperimentMixin):
             # Save metrics
             self.save_metrics(
                 results, 
-                save_path=self.metrics_dir / f"{language}_data_augmentation_metrics.json"
+                save_path=self.metrics_dir / f"{language}_metrics.json"
             )
             
             logger.info(f"Completed data augmentation experiment for language: {language}")

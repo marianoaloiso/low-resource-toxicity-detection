@@ -118,7 +118,7 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
             # Save metrics for this language
             self.save_metrics(
                 all_metrics, 
-                save_path=self.metrics_dir / f"{language}_transliterated_metrics.json"
+                save_path=self.metrics_dir / f"{language}_metrics.json"
             )
             
             logger.info(f"Completed transliteration experiment for language: {language}")
@@ -127,7 +127,7 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
 if __name__ == "__main__":
     language_pairs = [
         ('bodo', 'bengali'),
-        #('bodo', 'latin')
+        ('bodo', 'latin')
     ]
     config_path = "configs/monolingual_finetuning_config.yaml"
     for source, target in language_pairs:
