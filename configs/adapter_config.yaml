@@ -1,0 +1,7 @@
+model_name: "ai4bharat/indic-bert"
+num_labels: 2
+max_length: 512
+learning_rate: !!float 1e-4
+batch_size: 8
+num_epochs: 1
+adapter_identifier: "seq_bn" # Bottleneck adapter. Inv uses "seq_bn_inv"
