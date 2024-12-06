@@ -56,6 +56,22 @@ class ModelExperimentMixin:
             class_weights[label] = total / (labels.count(label) * len(set(labels)))
         return torch.tensor(list(class_weights.values()))
 
+    def count_parameters(self) -> tuple:
+        """
+        Count total and trainable parameters in the model
+        
+        Args:
+            model: PyTorch model
+        
+        Returns:
+            Tuple of (trainable_params, total_params)
+        """
+        trainable_params = sum(
+            p.numel() for p in self.model.parameters() if p.requires_grad
+        )
+        total_params = sum(p.numel() for p in self.model.parameters())
+        return trainable_params, total_params
+
     def train(
         self, 
         language, 
@@ -197,7 +213,7 @@ class ModelExperimentMixin:
             
             logger.info(f"Completed experiment for language: {language}")
 
-            
+# TODO: Refactor the following methods to be part of the ModelExperimentMixin class
 def load_automodel(model_name, num_labels):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
