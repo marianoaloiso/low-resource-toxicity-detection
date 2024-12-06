@@ -68,7 +68,7 @@ class LoRAExperiment(BaseExperiment, ModelExperimentMixin):
         self.model = self.setup_lora_model(self.model)
 
         # Compute model trainable parameters percentage
-        trainable_params, total_params = self._count_parameters(self.model)
+        trainable_params, total_params = self.count_parameters()
         trainable_percentage = (trainable_params / total_params) * 100
         logger.info(f"Trainable Parameters: {trainable_params} ({trainable_percentage:.2f}%)")
         logger.info(f"Total Parameters: {total_params}")
@@ -94,13 +94,10 @@ class LoRAExperiment(BaseExperiment, ModelExperimentMixin):
             class_weights=class_weights
         )
 
-        # Start training with performance tracking
         train_results = trainer.train()
 
-        # Save the LoRA model
         trainer.save_model(str(model_save_path))
 
-        # Save training metrics including computational efficiency
         metrics = train_results.metrics
         metrics.update({
             "total_params": total_params,
@@ -114,22 +111,6 @@ class LoRAExperiment(BaseExperiment, ModelExperimentMixin):
         )
 
         logger.info(f"Completed LoRA training for language: {language}")
-
-    def _count_parameters(self, model):
-        """
-        Count total and trainable parameters in the model
-        
-        Args:
-            model: PyTorch model
-        
-        Returns:
-            Tuple of (trainable_params, total_params)
-        """
-        trainable_params = sum(
-            p.numel() for p in model.parameters() if p.requires_grad
-        )
-        total_params = sum(p.numel() for p in model.parameters())
-        return trainable_params, total_params
 
 
 if __name__ == "__main__":
