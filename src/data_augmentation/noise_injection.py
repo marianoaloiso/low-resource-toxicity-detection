@@ -2,13 +2,12 @@ from src.data.data_loader import DataLoader
 from src.project_setup import ProjectSetup
 from src.utils.base_experiment import BaseExperiment
 from src.utils.model import ModelExperimentMixin
-import numpy as np
 import logging, random
 
 
 logger = logging.getLogger(__name__)
 
-class DataAugmentationExperiment(BaseExperiment, ModelExperimentMixin):
+class NoiseInjectionExperiment(BaseExperiment, ModelExperimentMixin):
     """
     Experiment to augment training data with controlled noise
     Supports various noise injection strategies for data augmentation
@@ -149,7 +148,7 @@ if __name__ == "__main__":
     config_path = "configs/monolingual_finetuning_config.yaml"
     
     for noise_level in noise_levels:
-        experiment = DataAugmentationExperiment(
+        experiment = NoiseInjectionExperiment(
             config_path,
             augmentation_factor=augmentation_factor,
             noise_level=noise_level
