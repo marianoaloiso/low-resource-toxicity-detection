@@ -145,15 +145,17 @@ class ModelExperimentMixin:
         )
         
         predictions = trainer.predict(self.datasets[dataset_split])
-        
-        pred_labels = predictions.predictions.argmax(-1)
+
+        logits = predictions.predictions
+        pred_labels = logits.argmax(-1) #predictions.predictions.argmax(-1)
         true_labels = [x["labels"].item() for x in self.datasets[dataset_split]]
         
-        prediction_filename = f"{language}_predictions_{dataset_split}.json" 
+        prediction_filename = f"{language}_predictions_{dataset_split}.json"
         self.save_predictions(
             predictions=pred_labels.tolist(),
             true_labels=true_labels,
-            save_path=self.predictions_dir / prediction_filename
+            save_path=self.predictions_dir / prediction_filename,
+            logits=logits.tolist()
         )
 
         metrics = self.calculate_metrics(

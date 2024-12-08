@@ -66,11 +66,18 @@ class BaseExperiment:
         """Save metrics to a file"""
         return self.save_json(metrics, self.metrics_dir / save_path)
 
-    def save_predictions(self, predictions: list, true_labels: list, save_path: Path):
+    def save_predictions(
+            self,
+            predictions: list,
+            true_labels: list,
+            save_path: Path,
+            logits: list = None):
         """Save predictions and true labels to file"""
         results = {
             'predictions': predictions,
             'true_labels': true_labels
         }
+        if logits:
+            results['logits'] = logits
         return self.save_json(results, save_path)
             
