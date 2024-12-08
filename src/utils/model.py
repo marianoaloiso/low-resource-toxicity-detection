@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from sklearn.metrics.pairwise import cosine_similarity
 from src.data.data_loader import DataLoader
-from src.project_setup import ProjectSetup
 from torch.nn import CrossEntropyLoss
 from transformers import (
     AutoTokenizer, AutoModel, AutoModelForSequenceClassification, 
@@ -114,7 +113,6 @@ class ModelExperimentMixin:
         
         trainer.save_model(str(model_save_path))
 
-        # Save training metrics
         self.save_metrics(
             train_results.metrics,
             model_save_path / f"training_metrics.json"
@@ -122,15 +120,14 @@ class ModelExperimentMixin:
 
         logger.info(f"Completed training for language: {language}")
 
-    def evaluate(
-        self, 
-        language, 
-        dataset_split="test"
-    ):
+        return trainer
+
+    def evaluate(self, trainer, language, dataset_split="test"):
         """
         Evaluate the model on the specified dataset split
         
         Args:
+            trainer (Trainer): Trained model trainer
             language (str): Language to evaluate on
             dataset_split (str): Which dataset split to evaluate on
         
@@ -139,15 +136,10 @@ class ModelExperimentMixin:
         """
         logger.info(f"Evaluating model on {dataset_split} set")
 
-        trainer = Trainer(
-            model=self.model,
-            args=TrainingArguments(output_dir=ProjectSetup.DUMMY_DIR)
-        )
-        
         predictions = trainer.predict(self.datasets[dataset_split])
 
         logits = predictions.predictions
-        pred_labels = logits.argmax(-1) #predictions.predictions.argmax(-1)
+        pred_labels = logits.argmax(-1)
         true_labels = [x["labels"].item() for x in self.datasets[dataset_split]]
         
         prediction_filename = f"{language}_predictions_{dataset_split}.json"
@@ -198,12 +190,12 @@ class ModelExperimentMixin:
             self.datasets = loader.load_language_data(language)
 
             # Train the model with class weights
-            self.train(language, use_class_weights=use_class_weights)
+            trainer = self.train(language, use_class_weights=use_class_weights)
 
             # Evaluation across different splits
             all_metrics = {}
             for split in evaluate_splits:
-                metrics = self.evaluate(language, dataset_split=split)
+                metrics = self.evaluate(trainer, language, dataset_split=split)
                 all_metrics[split] = metrics
 
             # Save metrics for this iteration
