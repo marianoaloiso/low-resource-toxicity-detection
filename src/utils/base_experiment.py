@@ -1,11 +1,11 @@
 from datetime import datetime
+from src.utils.helpers import save_json_with_numpy_conversion
 from pathlib import Path
 from src.project_setup import ProjectSetup
 from src.utils.model import ModelConfig
 from sklearn.metrics import classification_report
 from typing import Dict, Any
-import numpy as np
-import json, logging, yaml
+import logging, yaml
 
 
 class BaseExperiment:
@@ -16,16 +16,6 @@ class BaseExperiment:
         self.experiment_type = experiment_type
         self.setup_paths()
         self.setup_logging()
-        
-    def _convert_to_json(self, o):
-        if isinstance(o, np.int64): return int(o)
-        if isinstance(o, np.float64): return float(o)
-        raise TypeError
-    
-    def save_json(self, data: dict, save_path: Path):
-        """Save dictionary to a JSON file"""
-        with open(save_path, 'w') as f:
-            json.dump(data, f, default=self._convert_to_json)
         
     def setup_paths(self):
         """Create necessary directories for results"""
@@ -64,7 +54,8 @@ class BaseExperiment:
     
     def save_metrics(self, metrics: Dict[str, Any], save_path: str):
         """Save metrics to a file"""
-        return self.save_json(metrics, self.metrics_dir / save_path)
+        metrics_path = self.metrics_dir / save_path
+        save_json_with_numpy_conversion(metrics, metrics_path)
 
     def save_predictions(
             self,
@@ -79,5 +70,5 @@ class BaseExperiment:
         }
         if logits:
             results['logits'] = logits
-        return self.save_json(results, save_path)
+        save_json_with_numpy_conversion(results, save_path)
             
