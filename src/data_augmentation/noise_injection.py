@@ -95,12 +95,21 @@ class NoiseInjectionExperiment(BaseExperiment, ModelExperimentMixin):
         
         return dataset
 
-    def run_experiment(self, languages=ProjectSetup.LANGUAGES):
+    def run_experiment(
+        self, 
+        languages: list,
+        use_class_weights: bool = True,
+        evaluate_splits: list = ["train", "validation", "test"]
+    ):
         """
-        Run the data augmentation experiment
-        Overrides base method to include training data augmentation
+        Run the full experiment pipeline
+        
+        Args:
+            languages (list): List of languages to process
+            use_class_weights (bool): Whether to apply class weights during training
+            evaluate_splits (list): Which dataset splits to evaluate and save metrics for
         """
-        data_loader = DataLoader(
+        loader = DataLoader(
             tokenizer=None,
             max_length=self.config.max_length,
         )
@@ -108,35 +117,45 @@ class NoiseInjectionExperiment(BaseExperiment, ModelExperimentMixin):
         for language in languages:
             logger.info(f"Starting data augmentation experiment for language: {language}")
 
-            # Initialize fresh model for each language
-            self.model, self.tokenizer = self.load_automodel(self.model_name, self.num_labels)
-            data_loader.tokenizer = self.tokenizer
+            # Initialize model for each language
+            model, tokenizer = self.load_automodel(
+                self.model_name, 
+                self.num_labels
+            )
+            loader.tokenizer = tokenizer
 
             # Load language data
-            self.datasets = data_loader.load_language_data(language)
+            datasets = loader.load_language_data(language)
 
             # Augment only training data
-            self.datasets['train'] = self.augment_training_data(self.datasets['train'])
+            datasets['train'] = self.augment_training_data(datasets['train'])
 
-            # Train the model on augmented data
-            self.train(language, use_class_weights=True)
+            # Train the model with class weights
+            trainer = self.train(
+                model,
+                language,
+                train_dataset=datasets["train"],
+                eval_dataset=datasets["validation"],
+                use_class_weights=use_class_weights
+            )
 
-            # Evaluate on all datasets
-            train_metrics = self.evaluate(language, dataset_split="train")
-            val_metrics = self.evaluate(language, dataset_split="validation")
-            test_metrics = self.evaluate(language, dataset_split="test")
+            # Evaluation across different splits
+            all_metrics = {}
+            for split in evaluate_splits:
+                logger.info(f"Evaluating model on {split} set")
+                metrics = self.evaluate(
+                    trainer,
+                    datasets[split],
+                    language,
+                    dataset_split=split
+                )
+                all_metrics[split] = metrics
 
-            # Store results
-            results = {
-                "train": train_metrics,
-                "validation": val_metrics,
-                "test": test_metrics
-            }
-            
-            # Save metrics
+            # Save metrics for this iteration
+            metrics_filename = f"{language}_metrics.json"
             self.save_metrics(
-                results, 
-                save_path=self.metrics_dir / f"{language}_metrics.json"
+                all_metrics, 
+                save_path=self.metrics_dir / metrics_filename
             )
             
             logger.info(f"Completed data augmentation experiment for language: {language}")
