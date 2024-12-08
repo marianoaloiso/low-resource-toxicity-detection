@@ -12,42 +12,62 @@ class MultilingualFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
         super().__init__(config_path, experiment_type="multilingual_finetuning")
         ModelExperimentMixin.__init__(self, self.config)
 
-    def run_experiment(self, languages):
-        """Run the multilingual fine-tuning experiment"""
-        self.model, self.tokenizer = self.load_automodel(self.model_name, self.num_labels)
+    def run_experiment(
+        self, 
+        languages: list,
+        use_class_weights: bool = True,
+        evaluate_splits: list = ["train", "validation", "test"]
+    ):
+        """
+        Run the full experiment pipeline
+        
+        Args:
+            languages (list): List of languages to process
+            use_class_weights (bool): Whether to apply class weights during training
+            evaluate_splits (list): Which dataset splits to evaluate and save metrics for
+        """
+        model, tokenizer = self.load_automodel(self.model_name, self.num_labels)
 
         data_loader = DataLoader(
-            tokenizer=self.tokenizer,
+            tokenizer=tokenizer,
             max_length=self.config.max_length,
         )
 
-        self.datasets = data_loader.load_combined_language_data()
+        datasets = data_loader.load_combined_language_data()
 
-        trainer = self.train("combined")
+        trainer = self.train(
+            model,
+            "combined",
+            train_dataset=datasets["train"],
+            eval_dataset=datasets["validation"],
+            use_class_weights=use_class_weights
+        )
 
         for language in languages:
             logger.info(f"Evaluating experiment for language: {language}")
 
             self.datasets = data_loader.load_language_data(language)
 
-            train_metrics = self.evaluate(trainer, language, dataset_split="train")
+            # Evaluation across different splits
+            all_metrics = {}
+            for split in evaluate_splits:
+                logger.info(f"Evaluating model on {split} set")
+                metrics = self.evaluate(
+                    trainer,
+                    datasets[split],
+                    language,
+                    dataset_split=split
+                )
+                all_metrics[split] = metrics
 
-            val_metrics = self.evaluate(trainer, language, dataset_split="validation")
-
-            test_metrics = self.evaluate(trainer, language, dataset_split="test")
-
-            all_metrics = {
-                "train": train_metrics,
-                "validation": val_metrics,
-                "test": test_metrics
-            }
-            
+            # Save metrics for this iteration
+            metrics_filename = f"{language}_metrics.json"
             self.save_metrics(
                 all_metrics, 
-                save_path=self.metrics_dir / f"{language}_metrics.json"
+                save_path=self.metrics_dir / metrics_filename
             )
             
-            logger.info(f"Completed evaluation for language: {language}")
+            logger.info(f"Completed experiment for language: {language}")
 
         logger.info("Completed multilingual experiment")
 
