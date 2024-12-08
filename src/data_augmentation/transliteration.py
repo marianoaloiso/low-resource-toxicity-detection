@@ -1,6 +1,5 @@
 from indic_transliteration import sanscript
 from src.data.data_loader import DataLoader
-from src.project_setup import ProjectSetup
 from src.utils.base_experiment import BaseExperiment
 from src.utils.model import ModelExperimentMixin
 import logging
@@ -62,6 +61,8 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
             dataset: Dataset to transliterate
             language (str): Source language
         
+        Returns:
+            Dataset: Transliterated dataset
         """
         source_script = self.language_scripts.get(language.lower())
         
@@ -77,10 +78,21 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
         dataset.texts.extend(transliterated_texts)
         dataset.labels.extend(dataset.labels)
 
-    def run_experiment(self, languages=ProjectSetup.LANGUAGES):
+        return dataset
+
+    def run_experiment(
+        self, 
+        languages: list,
+        use_class_weights: bool = True,
+        evaluate_splits: list = ["train", "validation", "test"]
+    ):
         """
-        Run the transliteration experiment
-        Overrides base method to include transliteration step
+        Run the full experiment pipeline
+        
+        Args:
+            languages (list): List of languages to process
+            use_class_weights (bool): Whether to apply class weights during training
+            evaluate_splits (list): Which dataset splits to evaluate and save metrics for
         """
         data_loader = DataLoader(
             tokenizer=None,
@@ -91,34 +103,41 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
             logger.info(f"Starting experiment for language: {language}")
 
             # Initialize fresh model for each language
-            self.model, self.tokenizer = self.load_automodel(self.model_name, self.num_labels)
-            data_loader.tokenizer = self.tokenizer
+            model, tokenizer = self.load_automodel(self.model_name, self.num_labels)
+            data_loader.tokenizer = tokenizer
 
             # Setup data for the language
-            self.datasets = data_loader.load_language_data(language)
+            datasets = data_loader.load_language_data(language)
 
             # Augment training data with transliteration
-            self.transliterate_dataset(self.datasets['train'], language)
+            datasets['train'] = self.transliterate_dataset(datasets['train'], language)
 
-            # Train the model on transliterated data
-            self.train(language, use_class_weights=True)
+            # Train the model with class weights
+            trainer = self.train(
+                model,
+                language,
+                train_dataset=datasets["train"],
+                eval_dataset=datasets["validation"],
+                use_class_weights=use_class_weights
+            )
 
-            # Evaluate on transliterated datasets
-            train_metrics = self.evaluate(language, dataset_split="train")
-            val_metrics = self.evaluate(language, dataset_split="validation")
-            test_metrics = self.evaluate(language, dataset_split="test")
+            # Evaluation across different splits
+            all_metrics = {}
+            for split in evaluate_splits:
+                logger.info(f"Evaluating model on {split} set")
+                metrics = self.evaluate(
+                    trainer,
+                    datasets[split],
+                    language,
+                    dataset_split=split
+                )
+                all_metrics[split] = metrics
 
-            # Combine all metrics
-            all_metrics = {
-                "train": train_metrics,
-                "validation": val_metrics,
-                "test": test_metrics
-            }
-            
-            # Save metrics for this language
+            # Save metrics for this iteration
+            metrics_filename = f"{language}_metrics.json"
             self.save_metrics(
                 all_metrics, 
-                save_path=self.metrics_dir / f"{language}_metrics.json"
+                save_path=self.metrics_dir / metrics_filename
             )
             
             logger.info(f"Completed transliteration experiment for language: {language}")
