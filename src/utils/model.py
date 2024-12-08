@@ -21,8 +21,6 @@ class ModelExperimentMixin:
         self.config = config
         self.model_name = getattr(config, 'model_name', None)
         self.num_labels = getattr(config, 'num_labels', None)
-        self.model = None
-        self.tokenizer = None
 
     def load_automodel(self, model_name, num_labels):
         """
@@ -55,31 +53,35 @@ class ModelExperimentMixin:
             class_weights[label] = total / (labels.count(label) * len(set(labels)))
         return torch.tensor(list(class_weights.values()))
 
-    def count_parameters(self) -> tuple:
+    def count_parameters(self, model: torch.nn.Module):
         """
         Count total and trainable parameters in the model
         
         Args:
-            model: PyTorch model
+            model (torch.nn.Module): Model instance
         
         Returns:
             Tuple of (trainable_params, total_params)
         """
         trainable_params = sum(
-            p.numel() for p in self.model.parameters() if p.requires_grad
+            p.numel() for p in model.parameters() if p.requires_grad
         )
-        total_params = sum(p.numel() for p in self.model.parameters())
+        total_params = sum(p.numel() for p in model.parameters())
         return trainable_params, total_params
 
     def train(
         self, 
-        language, 
+        model,
+        language,
+        train_dataset,
+        eval_dataset,
         use_class_weights=False
     ):
         """
         Train the model on the training data
         
         Args:
+            model (torch.nn.Module): Model instance
             language (str): Language to train on
             use_class_weights (bool): Whether to apply class weights
         
@@ -88,9 +90,14 @@ class ModelExperimentMixin:
         """
         logger.info(f"Starting training for language: {language}")
 
+        trainable_params, total_params = self.count_parameters(model)
+        trainable_percentage = (trainable_params / total_params) * 100
+        logger.info(f"Trainable Parameters: {trainable_params} ({trainable_percentage:.2f}%)")
+        logger.info(f"Total Parameters: {total_params}")
+
         class_weights = None
         if use_class_weights:
-            class_weights = self.calculate_class_weights(self.datasets["train"].labels)
+            class_weights = self.calculate_class_weights(train_dataset.labels)
 
         model_save_path = self.models_dir / f"{language}_model" 
 
@@ -102,10 +109,10 @@ class ModelExperimentMixin:
         )
 
         trainer = WeightedTrainer(
-            model=self.model,
+            model=model,
             args=training_args,
-            train_dataset=self.datasets["train"],
-            eval_dataset=self.datasets["validation"],
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
             class_weights=class_weights
         )
 
@@ -113,8 +120,14 @@ class ModelExperimentMixin:
         
         trainer.save_model(str(model_save_path))
 
+        metrics = train_results.metrics
+        metrics.update({
+            "total_params": total_params,
+            "trainable_params": trainable_params,
+            "trainable_percentage": trainable_percentage
+        })
         self.save_metrics(
-            train_results.metrics,
+            metrics,
             model_save_path / f"training_metrics.json"
         )
 
@@ -180,17 +193,22 @@ class ModelExperimentMixin:
             logger.info(f"Starting experiment for language: {language}")
 
             # Initialize model for each language
-            self.model, self.tokenizer = load_automodel(
+            model, tokenizer = self.load_automodel(
                 self.model_name, 
                 self.num_labels
             )
-            loader.tokenizer = self.tokenizer
+            loader.tokenizer = tokenizer
 
             # Setup data for the specific context
             self.datasets = loader.load_language_data(language)
 
             # Train the model with class weights
-            trainer = self.train(language, use_class_weights=use_class_weights)
+            trainer = self.train(
+                model,
+                language,
+                train_dataset=self.datasets["train"],
+                eval_dataset=self.datasets["validation"],
+                use_class_weights=use_class_weights)
 
             # Evaluation across different splits
             all_metrics = {}
@@ -206,20 +224,6 @@ class ModelExperimentMixin:
             )
             
             logger.info(f"Completed experiment for language: {language}")
-
-# TODO: Refactor the following methods to be part of the ModelExperimentMixin class
-def load_automodel(model_name, num_labels):
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
-    return model, tokenizer
-
-def calculate_class_weights(labels: list) -> torch.Tensor:
-    """Calculate class weights for imbalanced datasets based on the frequency of each class"""
-    class_weights = {}
-    total = len(labels)
-    for label in set(labels):
-        class_weights[label] = total / (labels.count(label) * len(set(labels)))
-    return torch.tensor(list(class_weights.values()))
 
 
 @dataclass
