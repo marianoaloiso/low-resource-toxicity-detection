@@ -102,11 +102,7 @@ class LoRAExperiment(BaseExperiment, ModelExperimentMixin):
                 all_metrics[split] = metrics
 
             # Save metrics for this iteration
-            metrics_filename = f"{language}_metrics.json"
-            self.save_metrics(
-                all_metrics, 
-                save_path=self.metrics_dir / metrics_filename
-            )
+            self.save_metrics(all_metrics, f"{language}_metrics.json")
             
             logger.info(f"Completed LoRA experiment for language: {language}")
 

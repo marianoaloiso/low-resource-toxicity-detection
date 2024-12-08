@@ -99,10 +99,8 @@ class ModelExperimentMixin:
         if use_class_weights:
             class_weights = self.calculate_class_weights(train_dataset.labels)
 
-        model_save_path = self.models_dir / f"{language}_model" 
-
         training_args = TrainingArguments(
-            output_dir=model_save_path,
+            output_dir=self.models_dir,
             num_train_epochs=self.config.num_epochs,
             per_device_train_batch_size=self.config.batch_size,
             learning_rate=self.config.learning_rate,
@@ -118,7 +116,7 @@ class ModelExperimentMixin:
 
         train_results = trainer.train()
         
-        trainer.save_model(str(model_save_path))
+        trainer.save_model()
 
         metrics = train_results.metrics
         metrics.update({
@@ -126,10 +124,7 @@ class ModelExperimentMixin:
             "trainable_params": trainable_params,
             "trainable_percentage": trainable_percentage
         })
-        self.save_metrics(
-            metrics,
-            model_save_path / f"training_metrics.json"
-        )
+        self.save_training_metrics(metrics)
 
         logger.info(f"Completed training for language: {language}")
 
@@ -223,11 +218,7 @@ class ModelExperimentMixin:
                 all_metrics[split] = metrics
 
             # Save metrics for this iteration
-            metrics_filename = f"{language}_metrics.json"
-            self.save_metrics(
-                all_metrics, 
-                save_path=self.metrics_dir / metrics_filename
-            )
+            self.save_metrics(all_metrics, f"{language}_metrics.json")
             
             logger.info(f"Completed experiment for language: {language}")
 

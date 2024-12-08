@@ -64,10 +64,7 @@ class CrosslingualTransferExperiment(BaseExperiment, ModelExperimentMixin):
                 )
                 all_metrics[split] = metrics
 
-            self.save_metrics(
-                metrics, 
-                save_path=self.metrics_dir / f"{target_language}_metrics.json"
-            )
+            self.save_metrics(all_metrics, f"{target_language}_metrics.json")
 
             logger.info(f"Completed evaluation for language: {target_language}")
 

@@ -60,7 +60,13 @@ class ZeroShotInferenceExperiment(BaseExperiment):
         metrics = self.calculate_metrics(true_labels, predictions)
         return metrics
 
-    def run_experiment(self, target_languages, hypothesis_template=None, candidate_labels=None):
+    def run_experiment(
+            self,
+            target_languages,
+            hypothesis_template=None,
+            candidate_labels=None,
+            evaluate_splits: list = ["train", "validation", "test"]
+        ):
         """Run the NLI experiment"""
 
         for language in target_languages:
@@ -70,27 +76,18 @@ class ZeroShotInferenceExperiment(BaseExperiment):
             data_loader.tokenizer = self.pipeline.tokenizer
             self.datasets = data_loader.load_language_data(language)
 
-            train_metrics = self.evaluate(
-                language,
-                dataset_split="train",
-                hypothesis_template=hypothesis_template,
-                candidate_labels=candidate_labels
-            )
-            val_metrics = self.evaluate(
-                language,
-                dataset_split="validation",
-                hypothesis_template=hypothesis_template,
-                candidate_labels=candidate_labels
-            )
-            test_metrics = self.evaluate(
-                language,
-                dataset_split="test",
-                hypothesis_template=hypothesis_template,
-                candidate_labels=candidate_labels
-            )
+            all_metrics = {}
+            for split in evaluate_splits:
+                logger.info(f"Evaluating model on {split} set")
+                metrics = self.evaluate(
+                    language,
+                    dataset_split=split,
+                    hypothesis_template=hypothesis_template,
+                    candidate_labels=candidate_labels
+                )
+                all_metrics[split] = metrics
 
-            all_metrics = {"train": train_metrics, "validation": val_metrics, "test": test_metrics}
-            self.save_metrics(all_metrics, save_path=self.metrics_dir / f"{language}_metrics.json")
+            self.save_metrics(all_metrics, f"{language}_metrics.json")
 
             logger.info(f"Completed experiment for language: {language}")
 

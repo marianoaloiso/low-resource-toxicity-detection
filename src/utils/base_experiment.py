@@ -52,10 +52,15 @@ class BaseExperiment:
         """Calculate classification metrics"""
         return classification_report(true_labels, predictions, output_dict=True, zero_division=0)
     
-    def save_metrics(self, metrics: Dict[str, Any], save_path: str):
+    def save_metrics(self, metrics: Dict[str, Any], filename: str = "metrics.json"):
         """Save metrics to a file"""
-        metrics_path = self.metrics_dir / save_path
+        metrics_path = self.metrics_dir / filename
         save_json_with_numpy_conversion(metrics, metrics_path)
+
+    def save_training_metrics(self, metrics: Dict[str, Any], filename: str = "training_metrics.json"):
+        """Save training metrics to a file"""
+        training_metrics_path = self.models_dir / filename
+        save_json_with_numpy_conversion(metrics, training_metrics_path)
 
     def save_predictions(
             self,
