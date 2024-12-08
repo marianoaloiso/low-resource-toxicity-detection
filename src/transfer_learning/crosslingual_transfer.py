@@ -60,31 +60,39 @@ class CrosslingualTransferExperiment(BaseExperiment):
 
         return trainer
 
-    def evaluate_on_language(self, trainer, target_language, dataset_split="test"):
+    def evaluate(
+            self,
+            trainer,
+            language,
+            dataset_split="test"
+        ):
         """
         Evaluate the model on a specific target language
         
         Args:
             trainer: Trained model trainer
-            target_language (str): Language to evaluate on
+            language (str): Language to evaluate on
             dataset_split (str, optional): Dataset split to evaluate. Defaults to "test".
         
         Returns:
             dict: Evaluation metrics
         """
-        logger.info(f"Evaluating on target language: {target_language}")
+        logger.info(f"Evaluating on target language: {language}")
         
-        target_datasets = self.data_loader.load_language_data(target_language)
+        target_datasets = self.data_loader.load_language_data(language)
 
         predictions = trainer.predict(target_datasets[dataset_split])
         
-        pred_labels = predictions.predictions.argmax(-1)
-        true_labels = [x["labels"].item() for x in target_datasets[dataset_split]]
-        
+        logits = predictions.predictions
+        pred_labels = logits.argmax(-1)
+        true_labels = [x["labels"].item() for x in self.datasets[dataset_split]]
+
+        prediction_filename = f"{language}_predictions_{dataset_split}.json"
         self.save_predictions(
             predictions=pred_labels.tolist(),
             true_labels=true_labels,
-            save_path=self.predictions_dir / f"{target_language}_predictions_{dataset_split}.json"
+            save_path=self.predictions_dir / prediction_filename,
+            logits=logits.tolist()
         )
         
         metrics = self.calculate_metrics(
@@ -115,9 +123,9 @@ class CrosslingualTransferExperiment(BaseExperiment):
             trainer = self.train_on_languages(source_languages, use_class_weights=True)
 
             metrics = {
-                "train": self.evaluate_on_language(trainer, target_language, "train"),
-                "validation": self.evaluate_on_language(trainer, target_language, "validation"),
-                "test": self.evaluate_on_language(trainer, target_language, "test")
+                "train": self.evaluate(trainer, target_language, "train"),
+                "validation": self.evaluate(trainer, target_language, "validation"),
+                "test": self.evaluate(trainer, target_language, "test")
             }
 
             self.save_metrics(
