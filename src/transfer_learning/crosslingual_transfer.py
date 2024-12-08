@@ -1,117 +1,37 @@
 from src.data.data_loader import DataLoader
+from src.utils.model import ModelExperimentMixin
 from src.project_setup import ProjectSetup
 from src.utils.base_experiment import BaseExperiment
-from src.utils.model import calculate_class_weights, load_automodel, WeightedTrainer
-from transformers import TrainingArguments
 import logging
 
 logger = logging.getLogger(__name__)
 
-class CrosslingualTransferExperiment(BaseExperiment):
+class CrosslingualTransferExperiment(BaseExperiment, ModelExperimentMixin):
     """Crosslingual transfer learning experiment for low-resource languages"""
 
     def __init__(self, config_path):
         super().__init__(config_path, experiment_type="crosslingual_transfer")
-        self.model_name = self.config.model_name
-        self.num_labels = self.config.num_labels
-        self.model = None
-        self.tokenizer = None
+        ModelExperimentMixin.__init__(self, self.config)
         self.available_languages = ProjectSetup.LANGUAGES
 
-    def train_on_languages(self, source_languages, use_class_weights=False):
+    def run_experiment(
+        self, 
+        languages: list,
+        use_class_weights: bool = True,
+        evaluate_splits: list = ["train", "validation", "test"]
+    ):
         """
-        Train the model on specified source languages
-        """
-        logger.info(f"Training on source languages: {source_languages}")
-        
-        combined_datasets = self.data_loader.load_combined_language_data(
-            languages=source_languages,
-            splits=["train", "validation"]
-        )
-
-        class_weights = None
-        if use_class_weights:
-            class_weights = calculate_class_weights(combined_datasets["train"].labels)
-
-        model_save_path = self.models_dir / f"crosslingual_model_{'_'.join(source_languages)}"
-        
-        training_args = TrainingArguments(
-            output_dir=model_save_path,
-            num_train_epochs=self.config.num_epochs,
-            per_device_train_batch_size=self.config.batch_size,
-            learning_rate=self.config.learning_rate,
-        )
-
-        trainer = WeightedTrainer(
-            model=self.model,
-            args=training_args,
-            train_dataset=combined_datasets["train"],
-            eval_dataset=combined_datasets["validation"],
-            class_weights=class_weights,
-        )
-
-        train_results = trainer.train()
-        trainer.save_model(str(model_save_path))
-
-        self.save_json(
-            train_results.metrics,
-            model_save_path / "training_metrics.json",
-        )
-
-        return trainer
-
-    def evaluate(
-            self,
-            trainer,
-            language,
-            dataset_split="test"
-        ):
-        """
-        Evaluate the model on a specific target language
+        Run the full experiment pipeline
         
         Args:
-            trainer: Trained model trainer
-            language (str): Language to evaluate on
-            dataset_split (str, optional): Dataset split to evaluate. Defaults to "test".
-        
-        Returns:
-            dict: Evaluation metrics
+            languages (list): List of languages to process
+            use_class_weights (bool): Whether to apply class weights during training
+            evaluate_splits (list): Which dataset splits to evaluate and save metrics for
         """
-        logger.info(f"Evaluating on target language: {language}")
-        
-        target_datasets = self.data_loader.load_language_data(language)
+        model, tokenizer = self.load_automodel(self.model_name, self.num_labels)
 
-        predictions = trainer.predict(target_datasets[dataset_split])
-        
-        logits = predictions.predictions
-        pred_labels = logits.argmax(-1)
-        true_labels = [x["labels"].item() for x in self.datasets[dataset_split]]
-
-        prediction_filename = f"{language}_predictions_{dataset_split}.json"
-        self.save_predictions(
-            predictions=pred_labels.tolist(),
-            true_labels=true_labels,
-            save_path=self.predictions_dir / prediction_filename,
-            logits=logits.tolist()
-        )
-        
-        metrics = self.calculate_metrics(
-            true_labels=true_labels,
-            predictions=pred_labels.tolist()
-        )
-        
-        return metrics
-
-    def run_experiment(self, languages):
-        """
-        Run crosslingual transfer learning experiment
-        Iterate through all possible source language combinations
-        Train on two languages and evaluate on the third
-        """
-        self.model, self.tokenizer = load_automodel(self.model_name, self.num_labels)
-
-        self.data_loader = DataLoader(
-            tokenizer=self.tokenizer,
+        loader = DataLoader(
+            tokenizer=tokenizer,
             max_length=self.config.max_length,
         )
 
@@ -120,13 +40,29 @@ class CrosslingualTransferExperiment(BaseExperiment):
             
             logger.info(f"Experiment: Train on {source_languages}, Evaluate on {target_language}")
 
-            trainer = self.train_on_languages(source_languages, use_class_weights=True)
-
-            metrics = {
-                "train": self.evaluate(trainer, target_language, "train"),
-                "validation": self.evaluate(trainer, target_language, "validation"),
-                "test": self.evaluate(trainer, target_language, "test")
-            }
+            combined_datasets = loader.load_combined_language_data(
+                languages=source_languages,
+                splits=["train", "validation"]
+            )
+            trainer = self.train(
+                model,
+                source_languages,
+                train_dataset=combined_datasets["train"],
+                eval_dataset=combined_datasets["validation"],
+                use_class_weights=use_class_weights
+            )
+    
+            datasets = loader.load_language_data(target_language)
+            all_metrics = {}
+            for split in evaluate_splits:
+                logger.info(f"Evaluating model on {split} set")
+                metrics = self.evaluate(
+                    trainer,
+                    datasets[split],
+                    target_language,
+                    dataset_split=split
+                )
+                all_metrics[split] = metrics
 
             self.save_metrics(
                 metrics, 
