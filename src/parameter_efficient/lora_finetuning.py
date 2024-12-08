@@ -1,11 +1,11 @@
+from src.data.data_loader import DataLoader
 from src.utils.base_experiment import BaseExperiment
-from src.utils.model import ModelExperimentMixin, WeightedTrainer
+from src.utils.model import ModelExperimentMixin
 from peft import (
     LoraConfig, 
     get_peft_model, 
     prepare_model_for_kbit_training
 )
-from transformers import TrainingArguments
 from typing import Dict
 import logging
 
@@ -45,72 +45,70 @@ class LoRAExperiment(BaseExperiment, ModelExperimentMixin):
         lora_model = get_peft_model(model, lora_config)
         return lora_model
 
-    def train(
+    def run_experiment(
         self, 
-        language, 
-        use_class_weights=False
+        languages: list,
+        use_class_weights: bool = True,
+        evaluate_splits: list = ["train", "validation", "test"]
     ):
         """
-        Modified training method to incorporate LoRA
+        Run the full experiment pipeline
         
         Args:
-            language (str): Language to train on
-            use_class_weights (bool): Whether to apply class weights
+            languages (list): List of languages to process
+            use_class_weights (bool): Whether to apply class weights during training
+            evaluate_splits (list): Which dataset splits to evaluate and save metrics for
         """
-        logger.info(f"Starting LoRA training for language: {language}")
-
-        # Prepare class weights if needed
-        class_weights = None
-        if use_class_weights:
-            class_weights = self.calculate_class_weights(self.datasets["train"].labels)
-
-        # Apply LoRA to the model
-        self.model = self.setup_lora_model(self.model)
-
-        # Compute model trainable parameters percentage
-        trainable_params, total_params = self.count_parameters()
-        trainable_percentage = (trainable_params / total_params) * 100
-        logger.info(f"Trainable Parameters: {trainable_params} ({trainable_percentage:.2f}%)")
-        logger.info(f"Total Parameters: {total_params}")
-
-        # Rest of the training remains similar to the original implementation
-        model_save_path = self.models_dir / f"{language}_lora_model"
-
-        training_args = TrainingArguments(
-            output_dir=model_save_path,
-            num_train_epochs=self.config.num_epochs,
-            per_device_train_batch_size=self.config.batch_size,
-            learning_rate=self.config.learning_rate,
-            logging_dir=self.logs_dir,
-            logging_steps=10,
-            eval_strategy="epoch"
+        loader = DataLoader(
+            tokenizer=None,
+            max_length=self.config.max_length,
         )
+        
+        for language in languages:
+            logger.info(f"Starting experiment for language: {language}")
 
-        trainer = WeightedTrainer(
-            model=self.model,
-            args=training_args,
-            train_dataset=self.datasets["train"],
-            eval_dataset=self.datasets["validation"],
-            class_weights=class_weights
-        )
+            # Initialize model for each language
+            model, tokenizer = self.load_automodel(
+                self.model_name, 
+                self.num_labels
+            )
+            loader.tokenizer = tokenizer
 
-        train_results = trainer.train()
+            # Apply adapters to the model
+            model = self.setup_lora_model(model)
 
-        trainer.save_model(str(model_save_path))
+            # Setup data for the specific context
+            datasets = loader.load_language_data(language)
 
-        metrics = train_results.metrics
-        metrics.update({
-            "total_params": total_params,
-            "trainable_params": trainable_params,
-            "trainable_percentage": trainable_percentage
-        })
+            # Train the model with class weights
+            trainer = self.train(
+                model,
+                language,
+                train_dataset=datasets["train"],
+                eval_dataset=datasets["validation"],
+                use_class_weights=use_class_weights
+            )
 
-        self.save_metrics(
-            metrics,
-            model_save_path / f"training_metrics.json"
-        )
+            # Evaluation across different splits
+            all_metrics = {}
+            for split in evaluate_splits:
+                logger.info(f"Evaluating model on {split} set")
+                metrics = self.evaluate(
+                    trainer,
+                    datasets[split],
+                    language,
+                    dataset_split=split
+                )
+                all_metrics[split] = metrics
 
-        logger.info(f"Completed LoRA training for language: {language}")
+            # Save metrics for this iteration
+            metrics_filename = f"{language}_metrics.json"
+            self.save_metrics(
+                all_metrics, 
+                save_path=self.metrics_dir / metrics_filename
+            )
+            
+            logger.info(f"Completed LoRA experiment for language: {language}")
 
 
 if __name__ == "__main__":
