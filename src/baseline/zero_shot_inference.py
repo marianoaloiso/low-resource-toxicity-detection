@@ -49,10 +49,11 @@ class ZeroShotInferenceExperiment(BaseExperiment):
             predictions.append(candidate_labels[predicted_label])
 
         # Save predictions
+        prediction_filename = f"{language}_{dataset_split}_predictions.json"
         self.save_predictions(
             predictions=predictions,
             true_labels=true_labels,
-            save_path=self.predictions_dir / f"{language}_predictions_{dataset_split}.json"
+            save_path=self.predictions_dir / prediction_filename
         )
 
         # Compute metrics
