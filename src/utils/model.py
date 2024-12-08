@@ -135,27 +135,26 @@ class ModelExperimentMixin:
 
         return trainer
 
-    def evaluate(self, trainer, language, dataset_split="test"):
+    def evaluate(self, trainer, dataset, language, dataset_split=""):
         """
         Evaluate the model on the specified dataset split
         
         Args:
             trainer (Trainer): Trained model trainer
+            dataset (Dataset): Dataset to evaluate on
             language (str): Language to evaluate on
-            dataset_split (str): Which dataset split to evaluate on
         
         Returns:
             Evaluation metrics
         """
-        logger.info(f"Evaluating model on {dataset_split} set")
 
-        predictions = trainer.predict(self.datasets[dataset_split])
+        predictions = trainer.predict(dataset)
 
         logits = predictions.predictions
         pred_labels = logits.argmax(-1)
-        true_labels = [x["labels"].item() for x in self.datasets[dataset_split]]
+        true_labels = [x["labels"].item() for x in dataset]
         
-        prediction_filename = f"{language}_predictions_{dataset_split}.json"
+        prediction_filename = f"{language}_{dataset_split}_predictions.json"
         self.save_predictions(
             predictions=pred_labels.tolist(),
             true_labels=true_labels,
@@ -200,20 +199,27 @@ class ModelExperimentMixin:
             loader.tokenizer = tokenizer
 
             # Setup data for the specific context
-            self.datasets = loader.load_language_data(language)
+            datasets = loader.load_language_data(language)
 
             # Train the model with class weights
             trainer = self.train(
                 model,
                 language,
-                train_dataset=self.datasets["train"],
-                eval_dataset=self.datasets["validation"],
-                use_class_weights=use_class_weights)
+                train_dataset=datasets["train"],
+                eval_dataset=datasets["validation"],
+                use_class_weights=use_class_weights
+            )
 
             # Evaluation across different splits
             all_metrics = {}
             for split in evaluate_splits:
-                metrics = self.evaluate(trainer, language, dataset_split=split)
+                logger.info(f"Evaluating model on {split} set")
+                metrics = self.evaluate(
+                    trainer,
+                    datasets[split],
+                    language,
+                    dataset_split=split
+                )
                 all_metrics[split] = metrics
 
             # Save metrics for this iteration
