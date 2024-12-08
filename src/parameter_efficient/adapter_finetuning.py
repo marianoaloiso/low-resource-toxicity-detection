@@ -1,6 +1,6 @@
+from src.data.data_loader import DataLoader
 from src.utils.base_experiment import BaseExperiment
-from src.utils.model import ModelExperimentMixin, WeightedTrainer
-from transformers import TrainingArguments
+from src.utils.model import ModelExperimentMixin
 from typing import Dict
 import adapters, logging
 
@@ -19,87 +19,93 @@ class AdapterExperiment(BaseExperiment, ModelExperimentMixin):
         self.adapter_identifier = self.config.adapter_identifier
 
     def setup_adapter_model(
-        self
+            self,
+            model,
     ):
         """
         Setup adapter configuration and prepare model for adapter training
+
+        Args:
+            model (transformers.PreTrainedModel): Model instance
+
+        Returns:
+            transformers.PreTrainedModel: Model instance with adapter layer
         """
 
-        adapters.init(self.model)
+        adapters.init(model)
 
-        self.model.add_adapter(
+        model.add_adapter(
             self.adapter_name, 
             config=self.adapter_identifier
         )
 
-        self.model.train_adapter(self.adapter_name)
-    
+        model.train_adapter(self.adapter_name)
 
-    def train(
+        return model
+
+    def run_experiment(
         self, 
-        language, 
-        use_class_weights=False
+        languages: list,
+        use_class_weights: bool = True,
+        evaluate_splits: list = ["train", "validation", "test"]
     ):
         """
-        Modified training method to incorporate adapters
+        Run the full experiment pipeline
         
         Args:
-            language (str): Language to train on
-            use_class_weights (bool): Whether to apply class weights
+            languages (list): List of languages to process
+            use_class_weights (bool): Whether to apply class weights during training
+            evaluate_splits (list): Which dataset splits to evaluate and save metrics for
         """
-        logger.info(f"Starting adapter training for language: {language}")
-
-        # Prepare class weights if needed
-        class_weights = None
-        if use_class_weights:
-            class_weights = self.calculate_class_weights(self.datasets["train"].labels)
-
-        # Apply adapters to the model
-        self.setup_adapter_model()
-
-        # Compute adapter trainable parameters percentage
-        trainable_params, total_params = self.count_parameters()
-        trainable_percentage = (trainable_params / total_params) * 100
-        logger.info(f"Trainable Parameters: {trainable_params} ({trainable_percentage:.2f}%)")
-        logger.info(f"Total Parameters: {total_params}")
-
-        model_save_path = self.models_dir / f"{language}_adapter_model"
-
-        training_args = TrainingArguments(
-            output_dir=model_save_path,
-            num_train_epochs=self.config.num_epochs,
-            per_device_train_batch_size=self.config.batch_size,
-            learning_rate=self.config.learning_rate,
-            logging_dir=self.logs_dir,
-            logging_steps=10,
-            eval_strategy="epoch"
+        loader = DataLoader(
+            tokenizer=None,
+            max_length=self.config.max_length,
         )
+        
+        for language in languages:
+            logger.info(f"Starting experiment for language: {language}")
 
-        trainer = WeightedTrainer(
-            model=self.model,
-            args=training_args,
-            train_dataset=self.datasets["train"],
-            eval_dataset=self.datasets["validation"],
-            class_weights=class_weights
-        )
+            # Initialize model for each language
+            model, tokenizer = self.load_automodel(
+                self.model_name, 
+                self.num_labels
+            )
+            loader.tokenizer = tokenizer
 
-        train_results = trainer.train()
+            # Apply adapters to the model
+            model = self.setup_adapter_model(model)
 
-        trainer.save_model(str(model_save_path))
+            # Setup data for the specific context
+            datasets = loader.load_language_data(language)
 
-        metrics = train_results.metrics
-        metrics.update({
-            "total_params": total_params,
-            "trainable_params": trainable_params,
-            "trainable_percentage": trainable_percentage
-        })
+            # Train the model with class weights
+            trainer = self.train(
+                model,
+                language,
+                train_dataset=datasets["train"],
+                eval_dataset=datasets["validation"],
+                use_class_weights=use_class_weights)
 
-        self.save_json(
-            train_results.metrics,
-            self.models_dir / "training_metrics.json",
-        )
+            # Evaluation across different splits
+            all_metrics = {}
+            for split in evaluate_splits:
+                logger.info(f"Evaluating model on {split} set")
+                metrics = self.evaluate(
+                    trainer,
+                    datasets[split],
+                    language,
+                    dataset_split=split
+                )
+                all_metrics[split] = metrics
 
-        logger.info(f"Completed adapter training for language: {language}")
+            # Save metrics for this iteration
+            metrics_filename = f"{language}_metrics.json"
+            self.save_metrics(
+                all_metrics, 
+                save_path=self.metrics_dir / metrics_filename
+            )
+            
+            logger.info(f"Completed experiment for language: {language}")
 
 
 if __name__ == "__main__":
