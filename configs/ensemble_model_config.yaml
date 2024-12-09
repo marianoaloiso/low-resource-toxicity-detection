@@ -1,6 +1,6 @@
 num_labels: 2
 learning_rate: !!float 2e-5
-num_epochs: 5
+num_epochs: 20
 max_length: 512
 hidden_size: 32
 batch_size: 8
