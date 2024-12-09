@@ -115,7 +115,7 @@ class NoiseInjectionExperiment(BaseExperiment, ModelExperimentMixin):
         )
 
         for language in languages:
-            logger.info(f"Starting data augmentation experiment for language: {language}")
+            logger.info(f"Starting noise injection experiment for language: {language}")
 
             # Initialize model for each language
             model, tokenizer = self.load_automodel(
@@ -154,7 +154,7 @@ class NoiseInjectionExperiment(BaseExperiment, ModelExperimentMixin):
             # Save metrics for this iteration
             self.save_metrics(all_metrics, f"{language}_metrics.json")
             
-            logger.info(f"Completed data augmentation experiment for language: {language}")
+            logger.info(f"Completed noise injection experiment for language: {language}")
 
 
 if __name__ == "__main__":
