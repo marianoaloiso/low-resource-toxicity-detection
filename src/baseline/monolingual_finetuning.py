@@ -7,9 +7,9 @@ logger = logging.getLogger(__name__)
 class MonolingualFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
     """Fine-tuning model on individual datasets experiment"""
 
-    def __init__(self, config_path, experiment_type="monolingual_finetuning"):
-        super().__init__(config_path, experiment_type=experiment_type)
-        ModelExperimentMixin.__init__(self, self.config)
+    def __init__(self, config_path):
+        super().__init__("monolingual_finetuning")
+        ModelExperimentMixin.__init__(self, config_path)
 
 if __name__ == "__main__":
     config_path = "configs/monolingual_finetuning_config.yaml"

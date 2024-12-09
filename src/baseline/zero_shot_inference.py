@@ -1,8 +1,8 @@
 from src.data.data_loader import DataLoader
 from src.utils.base_experiment import BaseExperiment
-from src.utils.model import CustomNLIPipeline
+from src.utils.model import CustomNLIPipeline, ModelConfig
 from transformers import pipeline
-import logging
+import logging, yaml
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,9 @@ class ZeroShotInferenceExperiment(BaseExperiment):
     """Zero-shot inference experiment using NLI"""
 
     def __init__(self, config_path, experiment_type):
-        super().__init__(config_path, experiment_type)
+        super().__init__(experiment_type)
+        with open(config_path) as f:
+            self.config = ModelConfig.from_dict(yaml.safe_load(f))
         self.model_name = self.config.model_name
 
         if self.model_name == "ai4bharat/indic-bert":

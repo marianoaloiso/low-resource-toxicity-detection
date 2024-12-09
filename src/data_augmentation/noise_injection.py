@@ -21,8 +21,8 @@ class NoiseInjectionExperiment(BaseExperiment, ModelExperimentMixin):
             config_path (str): Path to configuration file
             augmentation_factor (float): Factor to multiply training data size
         """
-        super().__init__(config_path, experiment_type=f"noise_injection/noise_level={noise_level}")
-        ModelExperimentMixin.__init__(self, self.config)
+        super().__init__(experiment_type=f"noise_injection/noise_level={noise_level}")
+        ModelExperimentMixin.__init__(self, config_path)
 
         self.noise_types = ['word_swap', 'word_drop', 'word_replace']
         self.noise_level = noise_level

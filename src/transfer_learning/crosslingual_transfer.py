@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 class CrosslingualTransferExperiment(BaseExperiment, ModelExperimentMixin):
     """Crosslingual transfer learning experiment for low-resource languages"""
 
-    def __init__(self, config_path):
-        super().__init__(config_path, experiment_type="crosslingual_transfer")
-        ModelExperimentMixin.__init__(self, self.config)
+    def __init__(self, config_path: str):
+        super().__init__(experiment_type="crosslingual_transfer")
+        ModelExperimentMixin.__init__(self, config_path)
         self.available_languages = ProjectSetup.LANGUAGES
 
     def run_experiment(

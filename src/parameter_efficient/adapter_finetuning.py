@@ -13,8 +13,8 @@ class AdapterExperiment(BaseExperiment, ModelExperimentMixin):
     Freezes base model parameters and trains only adapter module parameters
     """
     def __init__(self, config_path, experiment_type="adapter_finetuning"):
-        super().__init__(config_path, experiment_type=experiment_type)
-        ModelExperimentMixin.__init__(self, self.config)
+        super().__init__(experiment_type)
+        ModelExperimentMixin.__init__(self, config_path)
         self.adapter_name = "toxicity_adapter"
         self.adapter_identifier = self.config.adapter_identifier
 

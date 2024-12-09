@@ -10,8 +10,8 @@ class BacktranslationExperiment(BaseExperiment, ModelExperimentMixin):
     """Augment training data with backtranslation"""
 
     def __init__(self, config_path, path_backtranslation_data, experiment_type="backtranslation"):
-        super().__init__(config_path, experiment_type=experiment_type)
-        ModelExperimentMixin.__init__(self, self.config)
+        super().__init__(experiment_type)
+        ModelExperimentMixin.__init__(self, config_path)
         self.path_backtranslation_data = path_backtranslation_data
     
     def add_backtranslation(self, dataset) -> str:

@@ -7,7 +7,7 @@ from transformers import (
     Trainer, TrainingArguments
 )
 from typing import Optional, Dict, Any
-import logging, torch
+import logging, torch, yaml
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +17,12 @@ class ModelExperimentMixin:
     Mixin class to add generic model training and evaluation methods
     to existing BaseExperiment classes
     """
-    def __init__(self, config=None):
-        self.config = config
-        self.model_name = getattr(config, 'model_name', None)
-        self.num_labels = getattr(config, 'num_labels', None)
-
+    def __init__(self, config_path=None):
+        with open(config_path) as f:
+            self.config = ModelConfig.from_dict(yaml.safe_load(f))
+        self.model_name = getattr(self.config, 'model_name', None)
+        self.num_labels = getattr(self.config, 'num_labels', None)
+            
     def load_automodel(self, model_name, num_labels):
         """
         Load a pre-trained automodel and tokenizer from Hugging Face model hub

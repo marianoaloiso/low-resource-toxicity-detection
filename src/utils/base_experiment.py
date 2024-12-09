@@ -2,7 +2,6 @@ from datetime import datetime
 from src.utils.helpers import save_json_with_numpy_conversion
 from pathlib import Path
 from src.project_setup import ProjectSetup
-from src.utils.model import ModelConfig
 from sklearn.metrics import classification_report
 from typing import Dict, Any
 import logging, yaml
@@ -10,10 +9,9 @@ import logging, yaml
 
 class BaseExperiment:
     """Base class for experiments with shared functionality"""
-    def __init__(self, config_path: str, experiment_type: str):
-        with open(config_path) as f:
-            self.config = ModelConfig.from_dict(yaml.safe_load(f))
+    def __init__(self, experiment_type: str):
         self.experiment_type = experiment_type
+        self.config = {}
         self.setup_paths()
         self.setup_logging()
         
@@ -42,16 +40,16 @@ class BaseExperiment:
             ]
         )
         self.logger = logging.getLogger(__name__)
-        
-    def save_config(self):
-        """Save experiment configuration"""
-        with open(self.experiment_dir / "config.yaml", 'w') as f:
-            yaml.dump(self.config, f)
 
     def calculate_metrics(self, true_labels: list, predictions: list) -> dict:
         """Calculate classification metrics"""
         return classification_report(true_labels, predictions, output_dict=True, zero_division=0)
     
+    def save_config(self):
+        """Save experiment configuration"""
+        with open(self.experiment_dir / "config.yaml", 'w') as f:
+            yaml.dump(self.config, f)
+
     def save_metrics(self, metrics: Dict[str, Any], filename: str = "metrics.json"):
         """Save metrics to a file"""
         metrics_path = self.metrics_dir / filename

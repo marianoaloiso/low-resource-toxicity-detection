@@ -17,8 +17,8 @@ class LoRAExperiment(BaseExperiment, ModelExperimentMixin):
     Mixin class to add LoRA (Low-Rank Adaptation) specific model training methods
     """
     def __init__(self, config_path, experiment_type="lora_finetuning"):
-        super().__init__(config_path, experiment_type=experiment_type)
-        ModelExperimentMixin.__init__(self, self.config)
+        super().__init__(experiment_type)
+        ModelExperimentMixin.__init__(self, config_path)
 
     def setup_lora_model(
         self, 

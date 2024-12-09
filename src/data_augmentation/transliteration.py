@@ -21,8 +21,8 @@ class TransliterationFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
             config_path (str): Path to configuration file
             transliteration_target (str): Target script for transliteration
         """
-        super().__init__(config_path, experiment_type=f"transliteration/{transliteration_target}")
-        ModelExperimentMixin.__init__(self, self.config)
+        super().__init__(experiment_type=f"transliteration/{transliteration_target}")
+        ModelExperimentMixin.__init__(self, config_path)
 
         self.language_scripts = {
             'bengali': sanscript.BENGALI,

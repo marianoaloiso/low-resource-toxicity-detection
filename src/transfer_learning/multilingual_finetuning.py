@@ -9,8 +9,8 @@ class MultilingualFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
     """Fine-tuning model on multilingual dataset"""
 
     def __init__(self, config_path):
-        super().__init__(config_path, experiment_type="multilingual_finetuning")
-        ModelExperimentMixin.__init__(self, self.config)
+        super().__init__(experiment_type="multilingual_finetuning")
+        ModelExperimentMixin.__init__(self, config_path)
 
     def run_experiment(
         self, 
