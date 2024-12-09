@@ -45,7 +45,7 @@ class EnsembleModelExperiment(BaseExperiment, ModelExperimentMixin):
             "Multilingual Fine-Tuning": "multilingual_finetuning",
             "Adapters": "adapter_finetuning",
             "LoRA": "lora_finetuning",
-            "Backtranslation": "back_translation",
+            "Backtranslation": "backtranslation",
             "Transliteration": "transliteration/bengali",
             "Noise Injection": "noise_injection/noise_level=0.2"
         }
@@ -72,9 +72,9 @@ class EnsembleModelExperiment(BaseExperiment, ModelExperimentMixin):
                 if ground_truth is None:
                     ground_truth = result["true_labels"]
 
-        ensemble_input = torch.stack(logits_list, dim=1).squeeze()
+        ensemble_input = torch.cat(logits_list, dim=-1)
         return ensemble_input, ground_truth
-    
+
     def get_logits_experiment(
             self,
             experiment: str,
@@ -108,8 +108,8 @@ class EnsembleModelExperiment(BaseExperiment, ModelExperimentMixin):
 
         predictions = trainer.predict(dataset["train"])
         logits = predictions.predictions
-        pred_labels = logits.argmax(-1) 
-
+        pred_labels = logits.argmax(-1)
+        
         return {
             "logits": torch.tensor(logits).float(),
             "pred_labels": torch.tensor(pred_labels),
@@ -168,6 +168,9 @@ class EnsembleModelExperiment(BaseExperiment, ModelExperimentMixin):
             predictions[experiment] = self.get_logits_experiment(experiment, language)
         
         ensemble_input, ground_truth = self.prepare_ensemble_input(predictions)
+
+        logger.info(f"Ensemble input shape: {ensemble_input.size()}")
+        logger.info(f"Ground truth shape: {ground_truth.size()}")
 
         ensemble_model = self.train_ensemble_model(ensemble_input, ground_truth)
 
