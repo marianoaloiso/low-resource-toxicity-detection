@@ -132,7 +132,8 @@ class EnsembleModelExperiment(BaseExperiment, ModelExperimentMixin):
         criterion = nn.BCELoss()
         optimizer = optim.Adam(ensemble_model.parameters(), lr=0.001)
 
-        for epoch in range(self.config.num_epochs):
+        num_epochs = self.config.num_epochs
+        for epoch in range(num_epochs):
             ensemble_model.train()
             total_loss = 0
             for batch_input, batch_labels in dataloader:
@@ -145,7 +146,7 @@ class EnsembleModelExperiment(BaseExperiment, ModelExperimentMixin):
                 optimizer.step()
 
                 total_loss += loss.item()
-            print(f'Epoch [{epoch+1}/50], Loss: {total_loss/len(dataloader):.4f}')
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {total_loss/len(dataloader):.4f}')
         
         return ensemble_model
     
