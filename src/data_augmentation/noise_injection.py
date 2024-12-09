@@ -159,7 +159,7 @@ class NoiseInjectionExperiment(BaseExperiment, ModelExperimentMixin):
 
 if __name__ == "__main__":
     augmentation_factor = 1.5
-    noise_levels = [0.2] #[0.1, 0.2, 0.3]
+    noise_levels = [0.1, 0.2, 0.3]
     config_path = "configs/monolingual_finetuning_config.yaml"
     
     for noise_level in noise_levels:
