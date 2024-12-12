@@ -222,6 +222,9 @@ class ModelExperimentMixin:
             self.save_metrics(all_metrics, f"{language}_metrics.json")
             
             logger.info(f"Completed experiment for language: {language}")
+        
+        # Save configuration for the experiment
+        self.save_config()
 
 
 @dataclass
