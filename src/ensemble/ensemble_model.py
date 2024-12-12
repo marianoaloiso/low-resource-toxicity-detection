@@ -184,6 +184,7 @@ class EnsembleModelExperiment(BaseExperiment, ModelExperimentMixin):
 
         self.save_metrics(metrics, f"{language}_metrics.json")
 
+        self.save_config()
 
 if __name__ == "__main__":
     config_path = "configs/ensemble_model_config.yaml"

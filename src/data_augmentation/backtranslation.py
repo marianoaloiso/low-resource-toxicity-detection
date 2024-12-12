@@ -93,6 +93,10 @@ class BacktranslationExperiment(BaseExperiment, ModelExperimentMixin):
             
             logger.info(f"Completed backtranslation experiment for language: {language}")
 
+        # Save configuration for the experiment
+        self.save_config()
+
+        
 if __name__ == "__main__":
     config_path = "configs/monolingual_finetuning_config.yaml"
     path_backtranslation_data = "data/processed/bodo/backtranslated_train.csv"

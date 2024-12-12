@@ -67,6 +67,8 @@ class MultilingualFinetuningExperiment(BaseExperiment, ModelExperimentMixin):
 
         logger.info("Completed multilingual experiment")
 
+        self.save_config()
+        
 
 if __name__ == "__main__":
     config_path = "configs/multilingual_finetuning_config.yaml"

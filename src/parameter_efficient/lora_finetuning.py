@@ -106,6 +106,9 @@ class LoRAExperiment(BaseExperiment, ModelExperimentMixin):
             
             logger.info(f"Completed LoRA experiment for language: {language}")
 
+        # Save configuration for the experiment
+        self.save_config()
+        
 
 if __name__ == "__main__":
     config_path = "configs/lora_config.yaml"

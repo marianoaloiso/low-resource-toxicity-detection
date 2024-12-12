@@ -156,7 +156,10 @@ class NoiseInjectionExperiment(BaseExperiment, ModelExperimentMixin):
             
             logger.info(f"Completed noise injection experiment for language: {language}")
 
+        # Save configuration for the experiment
+        self.save_config()
 
+        
 if __name__ == "__main__":
     augmentation_factor = 1.5
     noise_levels = [0.1, 0.2, 0.3]

@@ -103,7 +103,10 @@ class AdapterExperiment(BaseExperiment, ModelExperimentMixin):
             
             logger.info(f"Completed experiment for language: {language}")
 
+        # Save configuration for the experiment
+        self.save_config()
 
+        
 if __name__ == "__main__":
     config_path = "configs/adapter_config.yaml"
     languages = ["bodo"]

@@ -92,6 +92,8 @@ class ZeroShotInferenceExperiment(BaseExperiment):
             self.save_metrics(all_metrics, f"{language}_metrics.json")
 
             logger.info(f"Completed experiment for language: {language}")
+        
+        self.save_config()
 
 if __name__ == "__main__":
     

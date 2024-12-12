@@ -70,6 +70,8 @@ class CrosslingualTransferExperiment(BaseExperiment, ModelExperimentMixin):
 
         logger.info("Completed crosslingual transfer experiment")
 
+        self.save_config()
+
 
 if __name__ == "__main__":
     config_path = "configs/crosslingual_transfer_config.yaml"
