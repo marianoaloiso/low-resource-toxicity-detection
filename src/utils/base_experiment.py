@@ -47,7 +47,7 @@ class BaseExperiment:
     
     def save_config(self):
         """Save experiment configuration"""
-        with open(self.experiment_dir / "config.yaml", 'w') as f:
+        with open(self.experiment_dir / "experiment_config.yaml", 'w') as f:
             yaml.dump(self.config, f)
 
     def save_metrics(self, metrics: Dict[str, Any], filename: str = "metrics.json"):
