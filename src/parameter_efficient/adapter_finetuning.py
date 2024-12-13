@@ -100,6 +100,9 @@ class AdapterExperiment(BaseExperiment, ModelExperimentMixin):
 
             # Save metrics for this iteration
             self.save_metrics(all_metrics, f"{language}_metrics.json")
+
+            # Cleanup GPU memory
+            self.cleanup_gpu()
             
             logger.info(f"Completed experiment for language: {language}")
 

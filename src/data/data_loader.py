@@ -14,12 +14,14 @@ class ToxicCommentsDataset(Dataset):
         texts: List[str],
         labels: List[int],
         tokenizer: PreTrainedTokenizer,
-        max_length: int = 512
+        max_length: int = 512,
+        device: torch.device = torch.device("cpu")
     ):
         self.texts = texts
         self.labels = labels
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.device = device
 
     def __len__(self):
         return len(self.texts)
@@ -37,9 +39,9 @@ class ToxicCommentsDataset(Dataset):
         )
         
         return {
-            "input_ids": encoding["input_ids"].squeeze(0),
-            "attention_mask": encoding["attention_mask"].squeeze(0),
-            "labels": torch.tensor(label, dtype=torch.long),
+            "input_ids": encoding["input_ids"].squeeze(0).to(self.device),
+            "attention_mask": encoding["attention_mask"].squeeze(0).to(self.device),
+            "labels": torch.tensor(label, dtype=torch.long).to(self.device)
         }
 
 
@@ -67,7 +69,8 @@ class DataLoader:
             language: str,
             load_train: bool = True,
             load_validation: bool = True,
-            load_test: bool = True
+            load_test: bool = True,
+            device: torch.device = torch.device("cpu")
         ) -> pd.DataFrame:
         """Load data for a specific language
 
@@ -76,6 +79,7 @@ class DataLoader:
             load_train (bool): Load training data.
             load_validation (bool): Load validation data.
             load_test (bool): Load test data.
+            device (torch.device): Device to use for loading data.
         
         Returns:
             Dict[str, pd.DataFrame]: Data for the specified language.
@@ -90,7 +94,8 @@ class DataLoader:
                 texts=train_data["text"].tolist(),
                 labels=train_data["label"].tolist(),
                 tokenizer=self.tokenizer,
-                max_length=self.max_length
+                max_length=self.max_length,
+                device=device
             )
 
         if load_validation:
@@ -101,7 +106,8 @@ class DataLoader:
                 texts=validation_data["text"].tolist(),
                 labels=validation_data["label"].tolist(),
                 tokenizer=self.tokenizer,
-                max_length=self.max_length
+                max_length=self.max_length,
+                device=device
             )
         
         if load_test:
@@ -112,7 +118,8 @@ class DataLoader:
                 texts=test_data["text"].tolist(),
                 labels=test_data["label"].tolist(),
                 tokenizer=self.tokenizer,
-                max_length=self.max_length
+                max_length=self.max_length,
+                device=device
             )
 
         logger.info(f"Loaded data for language: {language}")
@@ -121,7 +128,8 @@ class DataLoader:
     def load_combined_language_data(
         self,
         languages: List[str] = ProjectSetup.LANGUAGES,
-        splits: List[str] = ["train", "validation", "test"]
+        splits: List[str] = ["train", "validation", "test"],
+        device: torch.device = torch.device("cpu")
     ) -> Dict[str, "ToxicCommentsDataset"]:
         """
         Load and combine data for multiple languages
@@ -148,7 +156,8 @@ class DataLoader:
                 texts=combined_data[split]["texts"],
                 labels=combined_data[split]["labels"],
                 tokenizer=self.tokenizer,
-                max_length=self.max_length
+                max_length=self.max_length,
+                device=device
             )
 
         logger.info(f"Combined multilingual data for languages: {languages}")

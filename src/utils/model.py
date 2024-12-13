@@ -22,7 +22,17 @@ class ModelExperimentMixin:
             self.config = ModelConfig.from_dict(yaml.safe_load(f))
         self.model_name = getattr(self.config, 'model_name', None)
         self.num_labels = getattr(self.config, 'num_labels', None)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             
+    def cleanup_gpu(self):
+        """
+        Clean up GPU memory after training or evaluation
+        """
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            if hasattr(torch.cuda, 'memory_summary'):
+                print(torch.cuda.memory_summary(device=self.device))
+
     def load_automodel(self, model_name, num_labels):
         """
         Load a pre-trained automodel and tokenizer from Hugging Face model hub
@@ -36,6 +46,7 @@ class ModelExperimentMixin:
         """
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
+        model.to(self.device)
         return model, tokenizer
 
     def calculate_class_weights(self, labels: list) -> torch.Tensor:
@@ -195,7 +206,7 @@ class ModelExperimentMixin:
             loader.tokenizer = tokenizer
 
             # Setup data for the specific context
-            datasets = loader.load_language_data(language)
+            datasets = loader.load_language_data(language, device=self.device)
 
             # Train the model with class weights
             trainer = self.train(
@@ -220,6 +231,9 @@ class ModelExperimentMixin:
 
             # Save metrics for this iteration
             self.save_metrics(all_metrics, f"{language}_metrics.json")
+
+            # Cleanup GPU memory
+            self.cleanup_gpu()
             
             logger.info(f"Completed experiment for language: {language}")
         

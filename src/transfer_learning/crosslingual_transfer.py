@@ -66,6 +66,8 @@ class CrosslingualTransferExperiment(BaseExperiment, ModelExperimentMixin):
 
             self.save_metrics(all_metrics, f"{target_language}_metrics.json")
 
+            self.cleanup_gpu()
+
             logger.info(f"Completed evaluation for language: {target_language}")
 
         logger.info("Completed crosslingual transfer experiment")
