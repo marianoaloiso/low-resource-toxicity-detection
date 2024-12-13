@@ -30,8 +30,6 @@ class ModelExperimentMixin:
         """
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            if hasattr(torch.cuda, 'memory_summary'):
-                print(torch.cuda.memory_summary(device=self.device))
 
     def load_automodel(self, model_name, num_labels):
         """
